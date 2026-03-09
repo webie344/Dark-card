@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CardMarket - Home</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Floating Lock Address -->
+    <div class="lock-address-bar">
+        <div class="lock-address-container">
+            <i class="fas fa-lock"></i>
+            <span id="lockAddress">Secured by Blockchain: 0x7d...f3a2</span>
+            <i class="fas fa-sync-alt rotating"></i>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <i class="fas fa-credit-card"></i>
+                <h1>CardMarket</h1>
+            </div>
+            <div class="header-actions">
+                <button class="btn-outline" onclick="location.href='login.html'">Login</button>
+                <button class="btn-primary" onclick="location.href='signup.html'">Sign Up</button>
+            </div>
+        </header>
+
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="hero-content">
+                <h2>Virtual Cards for Global Payments</h2>
+                <p>Create and fund virtual cards instantly with crypto</p>
+                <button class="btn-primary btn-large" onclick="location.href='cards.html'">Get Started</button>
+            </div>
+            <div class="hero-stats">
+                <div class="stat-item">
+                    <h3>50K+</h3>
+                    <p>Active Cards</p>
+                </div>
+                <div class="stat-item">
+                    <h3>150+</h3>
+                    <p>Countries</p>
+                </div>
+                <div class="stat-item">
+                    <h3>7</h3>
+                    <p>Cryptocurrencies</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features -->
+        <section class="features">
+            <h2>Why Choose CardMarket</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <i class="fas fa-bolt"></i>
+                    <h3>Instant Creation</h3>
+                    <p>Create virtual cards instantly, no waiting</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-globe"></i>
+                    <h3>Global Acceptance</h3>
+                    <p>Use your cards anywhere in the world</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-shield-alt"></i>
+                    <h3>Secure & Private</h3>
+                    <p>Your information is always protected</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-coins"></i>
+                    <h3>Multiple Currencies</h3>
+                    <p>Fund with 7+ cryptocurrencies</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- How It Works -->
+        <section class="how-it-works">
+            <h2>How It Works</h2>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <h3>Create Account</h3>
+                    <p>Sign up for free in seconds</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <h3>Choose Card</h3>
+                    <p>Select from 30+ virtual cards</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <h3>Fund Card</h3>
+                    <p>Add crypto to activate</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <h3>Start Spending</h3>
+                    <p>Use globally, spend anywhere</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="index.html" class="active">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+        </a>
+        <a href="cards.html">
+            <i class="fas fa-credit-card"></i>
+            <span>Cards</span>
+        </a>
+        <a href="fund.html">
+            <i class="fas fa-coins"></i>
+            <span>Fund</span>
+        </a>
+        <a href="account.html">
+            <i class="fas fa-user"></i>
+            <span>Account</span>
+        </a>
+    </nav>
+
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

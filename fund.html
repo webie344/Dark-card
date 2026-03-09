@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CardMarket - Fund Card</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Floating Lock Address -->
+    <div class="lock-address-bar">
+        <div class="lock-address-container">
+            <i class="fas fa-lock"></i>
+            <span id="lockAddress">Secured by Blockchain: 0x7d...f3a2</span>
+            <i class="fas fa-sync-alt rotating"></i>
+        </div>
+    </div>
+
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <i class="fas fa-credit-card"></i>
+                <h1>CardMarket</h1>
+            </div>
+            <div class="header-actions">
+                <button class="btn-outline" onclick="location.href='account.html'">Account</button>
+            </div>
+        </header>
+
+        <div class="fund-section">
+            <h2>Fund Your Card</h2>
+            
+            <!-- Card Selection -->
+            <div class="card-selector">
+                <label for="cardSelect">Select Card to Fund</label>
+                <select id="cardSelect" class="card-select">
+                    <option value="">Choose a card...</option>
+                </select>
+            </div>
+
+            <!-- Crypto Wallets -->
+            <div class="crypto-wallets">
+                <h3>Send Crypto to these addresses</h3>
+                <div class="wallets-grid" id="walletsContainer">
+                    <!-- Wallets will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Currency Converter -->
+            <div class="currency-converter">
+                <h3>Currency Converter <span class="badge">Real-time</span></h3>
+                <div class="converter-box">
+                    <div class="converter-input">
+                        <input type="number" id="amount" placeholder="Enter amount" value="1">
+                        <select id="fromCurrency">
+                            <option value="USD">USD</option>
+                            <option value="EUR">EUR</option>
+                            <option value="GBP">GBP</option>
+                        </select>
+                    </div>
+                    <div class="converter-swap">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                    <div class="converter-input">
+                        <input type="number" id="convertedAmount" placeholder="Converted amount" readonly>
+                        <select id="toCurrency">
+                            <option value="BTC">BTC</option>
+                            <option value="ETH">ETH</option>
+                            <option value="USDT">USDT</option>
+                            <option value="BNB">BNB</option>
+                            <option value="SOL">SOL</option>
+                            <option value="ADA">ADA</option>
+                            <option value="DOT">DOT</option>
+                        </select>
+                    </div>
+                </div>
+                <p class="converter-note">* Exchange rates are for reference only</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="index.html">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+        </a>
+        <a href="cards.html">
+            <i class="fas fa-credit-card"></i>
+            <span>Cards</span>
+        </a>
+        <a href="fund.html" class="active">
+            <i class="fas fa-coins"></i>
+            <span>Fund</span>
+        </a>
+        <a href="account.html">
+            <i class="fas fa-user"></i>
+            <span>Account</span>
+        </a>
+    </nav>
+
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CardMarket - Cards</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Floating Lock Address -->
+    <div class="lock-address-bar">
+        <div class="lock-address-container">
+            <i class="fas fa-lock"></i>
+            <span id="lockAddress">Secured by Blockchain: 0x7d...f3a2</span>
+            <i class="fas fa-sync-alt rotating"></i>
+        </div>
+    </div>
+
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <i class="fas fa-credit-card"></i>
+                <h1>CardMarket</h1>
+            </div>
+            <div class="header-actions">
+                <button class="btn-outline" onclick="location.href='account.html'">Account</button>
+            </div>
+        </header>
+
+        <div class="cards-section">
+            <h2>Available Cards <span class="card-count">30+ Cards</span></h2>
+            
+            <div class="filters">
+                <input type="text" id="searchCards" placeholder="Search cards..." class="search-input">
+                <select id="countryFilter" class="filter-select">
+                    <option value="">All Countries</option>
+                </select>
+            </div>
+
+            <div class="cards-grid" id="cardsContainer">
+                <!-- Cards will be dynamically loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="index.html">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+        </a>
+        <a href="cards.html" class="active">
+            <i class="fas fa-credit-card"></i>
+            <span>Cards</span>
+        </a>
+        <a href="fund.html">
+            <i class="fas fa-coins"></i>
+            <span>Fund</span>
+        </a>
+        <a href="account.html">
+            <i class="fas fa-user"></i>
+            <span>Account</span>
+        </a>
+    </nav>
+
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

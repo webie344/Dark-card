@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CardMarket - Account</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Floating Lock Address -->
+    <div class="lock-address-bar">
+        <div class="lock-address-container">
+            <i class="fas fa-lock"></i>
+            <span id="lockAddress">Secured by Blockchain: 0x7d...f3a2</span>
+            <i class="fas fa-sync-alt rotating"></i>
+        </div>
+    </div>
+
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <i class="fas fa-credit-card"></i>
+                <h1>CardMarket</h1>
+            </div>
+            <div class="header-actions">
+                <button class="btn-outline" id="logoutBtn">Logout</button>
+            </div>
+        </header>
+
+        <div class="account-section">
+            <div class="profile-header">
+                <div class="profile-avatar">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <div class="profile-info">
+                    <h2 id="userName">Loading...</h2>
+                    <p id="userEmail">Loading...</p>
+                </div>
+            </div>
+
+            <div class="account-stats">
+                <div class="stat-box">
+                    <h3>Total Cards</h3>
+                    <p id="totalCards">0</p>
+                </div>
+                <div class="stat-box">
+                    <h3>Active Cards</h3>
+                    <p id="activeCards">0</p>
+                </div>
+                <div class="stat-box">
+                    <h3>Total Spent</h3>
+                    <p id="totalSpent">$0</p>
+                </div>
+            </div>
+
+            <div class="recent-activity">
+                <h3>Recent Activity</h3>
+                <div id="recentActivity">
+                    <p class="no-activity">No recent activity</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="index.html">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+        </a>
+        <a href="cards.html">
+            <i class="fas fa-credit-card"></i>
+            <span>Cards</span>
+        </a>
+        <a href="fund.html">
+            <i class="fas fa-coins"></i>
+            <span>Fund</span>
+        </a>
+        <a href="account.html" class="active">
+            <i class="fas fa-user"></i>
+            <span>Account</span>
+        </a>
+    </nav>
+
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
