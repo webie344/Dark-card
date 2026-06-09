@@ -323,7 +323,8 @@ document.getElementById("form-register")?.addEventListener("submit", async e => 
       referralCode: refCode,
       referredBy: referredByUid,
       balance: 0,            // funded when admin approves a deposit
-      bonusBalance: SIGNUP_BONUS, // signup + referral bonuses — withdrawable after first deposit
+      bonusBalance: SIGNUP_BONUS, // signup bonus — withdrawable after first deposit
+      referralBalance: 0,    // referral commissions — immediately withdrawable
       earningsBalance: 0,    // plan daily earnings — withdrawable after Day 2
       totalInvested: 0,
       totalEarnings: 0,
@@ -407,9 +408,23 @@ onAuthStateChanged(auth, async user => {
 // ============================================================
 async function loadUserData(uid) {
   if (unsubscribeSnapshot) unsubscribeSnapshot();
+  let prevReferralBalance = null; // track to detect incoming referral credits
+
   unsubscribeSnapshot = onSnapshot(doc(db, "users", uid), async snap => {
     if (!snap.exists()) return;
-    userData = snap.data();
+    const newData = snap.data();
+
+    // Detect a new referral bonus credit and show a popup alert
+    if (prevReferralBalance !== null) {
+      const newRefBal = newData.referralBalance || 0;
+      const diff = newRefBal - prevReferralBalance;
+      if (diff > 0) {
+        showReferralCreditPopup(diff);
+      }
+    }
+    prevReferralBalance = newData.referralBalance || 0;
+
+    userData = newData;
 
     // Credit daily earnings if plan active
     await creditDailyEarnings();
@@ -417,6 +432,52 @@ async function loadUserData(uid) {
     renderDashboard();
     renderProfile();
   });
+}
+
+function showReferralCreditPopup(amount) {
+  // Remove any existing popup first
+  document.getElementById("referral-credit-popup")?.remove();
+
+  const popup = document.createElement("div");
+  popup.id = "referral-credit-popup";
+  popup.style.cssText = `
+    position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+    background:#fff; border-radius:20px; padding:32px 28px; text-align:center;
+    z-index:9999; box-shadow:0 20px 60px rgba(0,0,0,0.25); max-width:300px; width:90%;
+    animation: popIn 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  `;
+  popup.innerHTML = `
+    <div style="font-size:48px;margin-bottom:12px">🎉</div>
+    <div style="font-size:18px;font-weight:700;color:#1a1a2e;margin-bottom:8px">Referral Bonus Received!</div>
+    <div style="font-size:28px;font-weight:800;color:#22c55e;margin-bottom:12px">${fmt(amount)}</div>
+    <div style="font-size:14px;color:#666;margin-bottom:24px">
+      Someone you referred just made their first investment.<br>
+      Your referral bonus is <b>ready to withdraw now!</b>
+    </div>
+    <button onclick="document.getElementById('referral-credit-popup')?.remove(); document.getElementById('referral-popup-backdrop')?.remove();"
+      style="background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none;
+             border-radius:12px;padding:12px 32px;font-size:15px;font-weight:700;cursor:pointer;width:100%">
+      Awesome! 🙌
+    </button>
+  `;
+
+  const backdrop = document.createElement("div");
+  backdrop.id = "referral-popup-backdrop";
+  backdrop.style.cssText = `
+    position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9998;
+  `;
+  backdrop.onclick = () => { popup.remove(); backdrop.remove(); };
+
+  // Inject keyframe if not already added
+  if (!document.getElementById("popIn-style")) {
+    const style = document.createElement("style");
+    style.id = "popIn-style";
+    style.textContent = `@keyframes popIn { from { opacity:0; transform:translate(-50%,-50%) scale(0.7); } to { opacity:1; transform:translate(-50%,-50%) scale(1); } }`;
+    document.head.appendChild(style);
+  }
+
+  document.body.appendChild(backdrop);
+  document.body.appendChild(popup);
 }
 
 // ============================================================
@@ -622,11 +683,11 @@ window.confirmInvestment = async function(planId) {
       status: "completed", createdAt: serverTimestamp()
     });
 
-    // Pay referrer ₦2,000 to bonusBalance (immediately withdrawable) on first investment only
+    // Pay referrer ₦2,000 to referralBalance (immediately withdrawable) on first investment only
     if (isFirstInvestment) {
       const REFERRAL_BONUS = 2000;
       await updateDoc(doc(db, "users", userData.referredBy), {
-        bonusBalance: increment(REFERRAL_BONUS),
+        referralBalance: increment(REFERRAL_BONUS),
         totalEarnings: increment(REFERRAL_BONUS)
       });
       await addDoc(collection(db, "transactions"), {
@@ -878,31 +939,44 @@ window.openWithdrawModal = function() {
 
   const minPlan = PLANS[0]; // Starter plan — minimum deposit required
 
-  // Block ALL withdrawals (bonus, referral, earnings) until the user has
-  // made at least one approved deposit of the minimum plan amount.
+  const bonusBal    = userData.bonusBalance    || 0;
+  const referralBal = userData.referralBalance || 0;
+  const earnsBal    = userData.earningsBalance  || 0;
+  const elapsed     = userData.planDaysElapsed  || 0;
+  const canWithdrawEarnings = elapsed >= WITHDRAW_DELAY_DAYS;
+
+  // ── RULE: no withdrawals of ANY kind until the user has made their first deposit.
+  // Once depositMade = true, ALL balances unlock:
+  //   • signup bonus    → immediately
+  //   • referral bonus  → immediately (referrer already deposited before their referee joined)
+  //   • earnings        → after Day 2 of active plan
   if (!userData.depositMade) {
     document.getElementById("withdraw-bonus-row").style.display = "none";
+    const refRow = document.getElementById("withdraw-referral-row");
+    if (refRow) refRow.style.display = "none";
     document.getElementById("withdraw-earnings-row").style.display = "none";
     document.getElementById("withdraw-balance-val").textContent = fmt(0);
     document.getElementById("withdraw-lock-notice").style.display = "flex";
     document.getElementById("withdraw-lock-notice").innerHTML =
-      `<span>🔒</span><span>You must make your first deposit of at least ${fmt(minPlan.amount)} (${minPlan.name} Plan) before you can withdraw your bonus or referral balance.</span>`;
+      `<span>🔒</span><span>You must make your first deposit of at least ${fmt(minPlan.amount)} (${minPlan.name} Plan) before you can withdraw any funds — including your signup bonus and any referral bonuses.</span>`;
     document.getElementById("withdraw-form-fields").style.display = "none";
     openModal("modal-withdraw");
     return;
   }
 
-  const bonusBal  = userData.bonusBalance  || 0;
-  const earnsBal  = userData.earningsBalance || 0;
-  const elapsed   = userData.planDaysElapsed || 0;
-  const canWithdrawEarnings = elapsed >= WITHDRAW_DELAY_DAYS;
+  // User has deposited — calculate what's available
+  const available = bonusBal + referralBal + (canWithdrawEarnings ? earnsBal : 0);
 
-  // Bonus/referral balance is withdrawable after first deposit; earnings need Day 2
-  const available = bonusBal + (canWithdrawEarnings ? earnsBal : 0);
-
-  // Show breakdown in modal
+  // Show breakdown
   document.getElementById("withdraw-bonus-row").style.display = bonusBal > 0 ? "flex" : "none";
   document.getElementById("withdraw-bonus-val").textContent   = fmt(bonusBal);
+
+  const refRow = document.getElementById("withdraw-referral-row");
+  if (refRow) {
+    refRow.style.display = referralBal > 0 ? "flex" : "none";
+    document.getElementById("withdraw-referral-val").textContent = fmt(referralBal);
+  }
+
   document.getElementById("withdraw-earnings-row").style.display = "flex";
   document.getElementById("withdraw-earnings-val").textContent = canWithdrawEarnings
     ? fmt(earnsBal)
@@ -933,30 +1007,36 @@ document.getElementById("btn-submit-withdraw")?.addEventListener("click", async 
   const bank    = document.getElementById("wd-bank-name").value.trim();
   const accName = document.getElementById("wd-account-name").value.trim();
 
-  // Hard server-side-style guard: no withdrawals before first deposit is approved
+  // Hard guard — no withdrawals before first deposit
   if (!userData?.depositMade) {
-    return showToast("Make your first deposit (minimum ₦4,000 Starter Plan) to unlock withdrawals", "error");
+    return showToast("Make your first deposit (min. ₦4,000 Starter Plan) to unlock withdrawals", "error");
   }
 
-  const bonusBal = userData?.bonusBalance  || 0;
-  const earnsBal = userData?.earningsBalance || 0;
-  const elapsed  = userData?.planDaysElapsed || 0;
+  const referralBal = userData?.referralBalance || 0;
+  const bonusBal    = userData?.bonusBalance    || 0;
+  const earnsBal    = userData?.earningsBalance  || 0;
+  const elapsed     = userData?.planDaysElapsed  || 0;
   const canWithdrawEarnings = elapsed >= WITHDRAW_DELAY_DAYS;
-  const available = bonusBal + (canWithdrawEarnings ? earnsBal : 0);
 
-  if (!amount || amount < 500)   return showToast("Minimum withdrawal is ₦500", "error");
-  if (amount > available)         return showToast("Insufficient available balance", "error");
-  if (!accNum || !bank || !accName) return showToast("Fill all bank details", "error");
+  // After first deposit: bonus + referral immediately available; earnings after Day 2
+  const available = bonusBal + referralBal + (canWithdrawEarnings ? earnsBal : 0);
 
-  // Deduct from bonusBalance first, then earningsBalance
-  const deductBonus    = Math.min(amount, bonusBal);
-  const deductEarnings = amount - deductBonus;
+  if (!amount || amount < 500)      return showToast("Minimum withdrawal is ₦500", "error");
+  if (amount > available)            return showToast("Insufficient available balance", "error");
+  if (!accNum || !bank || !accName)  return showToast("Fill all bank details", "error");
+
+  // Deduct: referral first → bonus → earnings
+  let remaining = amount;
+  const deductReferral = Math.min(remaining, referralBal);                        remaining -= deductReferral;
+  const deductBonus    = Math.min(remaining, bonusBal);                           remaining -= deductBonus;
+  const deductEarnings = Math.min(remaining, canWithdrawEarnings ? earnsBal : 0);
 
   setLoading("btn-submit-withdraw", true, "Request Withdrawal");
   try {
     const uid = currentUser.uid;
     await updateDoc(doc(db, "users", uid), {
       bankAccount: accNum, bankName: bank, accountName: accName,
+      ...(deductReferral > 0 ? { referralBalance: increment(-deductReferral) } : {}),
       ...(deductBonus    > 0 ? { bonusBalance:    increment(-deductBonus)    } : {}),
       ...(deductEarnings > 0 ? { earningsBalance: increment(-deductEarnings) } : {})
     });
@@ -1044,7 +1124,7 @@ window.renderReferralTab = async function() {
   const ref  = userData.referralCode || "";
   const link = `${window.location.origin}${window.location.pathname}?ref=${ref}`;
   document.getElementById("ref-tab-link").textContent       = link;
-  document.getElementById("ref-tab-bonus-bal").textContent  = fmt(userData.bonusBalance || 0);
+  document.getElementById("ref-tab-bonus-bal").textContent  = fmt(userData.referralBalance || 0);
 
   try {
     const snap = await getDocs(query(collection(db, "users"), where("referredBy", "==", currentUser.uid)));
