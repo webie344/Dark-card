@@ -34,8 +34,8 @@ const CLOUDINARY_UPLOAD_PRESET = "profile-pictures"; // unsigned preset
 // Opay Payment Details — replace with your real details
 const PAYMENT_DETAILS = {
   bank: "Opay",
-  accountName: "NNPC Investment Platform",
-  accountNumber: "9012345678"
+  accountName: "NNPC Investment Platform/ Cyprian David ",
+  accountNumber: "9130063806"
 };
 
 // Telegram config
