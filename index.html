@@ -46,12 +46,17 @@
       border-radius: 8px;
       padding-left: 6px;
     }
+
+    /* Ticker speed override — makes all plans visible as the strip scrolls */
+    .ticker-track {
+      animation-duration: 22s !important;
+    }
   </style>
 </head>
 <body>
 
-<!-- ===== FULL SCREEN LOADER ===== -->
-<div class="full-loader" id="full-loader">
+<!-- ===== FULL SCREEN LOADER — visible by default; app.js hides it ===== -->
+<div class="full-loader" id="full-loader" style="display:flex">
   <div class="logo-circle">N</div>
   <p>Loading NNPC Invest...</p>
 </div>
@@ -571,8 +576,8 @@
 
     <div class="payment-account">
       <div class="payment-bank" id="pay-bank">Opay</div>
-      <div class="payment-name" id="pay-name">NNPC Investment Platform/cyprian David</div>
-      <div class="payment-number" id="pay-number">9130063806</div>
+      <div class="payment-name" id="pay-name">NNPC Investment Platform</div>
+      <div class="payment-number" id="pay-number">9012345678</div>
       <button class="copy-btn" onclick="copyAccountNumber()">📋 Copy Account Number</button>
     </div>
 
@@ -821,16 +826,12 @@
   </div>
 </div>
 
-<!-- Show login screen immediately; Firebase will switch to app screen if user is logged in -->
+<!-- Remove "active" from all screens on load; app.js controls which screen shows -->
 <script>
   document.addEventListener("DOMContentLoaded", function() {
-    var loader = document.getElementById("full-loader");
-    if (loader) loader.style.display = "none";
     document.querySelectorAll(".screen").forEach(function(s) {
       s.classList.remove("active");
     });
-    var login = document.getElementById("screen-login");
-    if (login) login.classList.add("active");
   });
 </script>
 

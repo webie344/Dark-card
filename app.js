@@ -2,7 +2,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
-  signOut, onAuthStateChanged, updateProfile
+  signOut, onAuthStateChanged, updateProfile,
+  browserLocalPersistence, setPersistence
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore,
@@ -65,6 +66,12 @@ const PAYMENT_TIMER_MINUTES = 30;
 const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db   = getFirestore(app);
+
+// Explicitly lock auth to localStorage so the session survives page reloads
+// across all browsers (Safari, Firefox strict mode, etc.)
+setPersistence(auth, browserLocalPersistence).catch(() => {
+  // If localStorage is blocked (incognito/iOS), fall back silently
+});
 
 // ============================================================
 //  GLOBALS
@@ -173,26 +180,23 @@ window.nextSlide   = nextSlide;
 //  ACTIVITY TICKER
 // ============================================================
 (function initTicker() {
-  const phoneSeeds = [
-    "0801****4523","0703****8812","0812****2267","0905****1130","0816****7745",
-    "0702****3391","0811****5508","0913****4472","0708****9934","0803****6619",
-    "0817****2281","0706****8847","0901****5563","0815****3319","0704****7726",
-    "0902****8841","0813****4453","0709****1127","0816****6692","0705****2238"
+  // Pool of masked phone prefixes — a random 4-digit suffix is appended each time
+  const phonePrefixes = [
+    "0801","0703","0812","0905","0816","0702","0811","0913",
+    "0708","0803","0817","0706","0901","0815","0704","0902",
+    "0813","0709","0814","0705","0806","0808","0907","0810"
   ];
-  const amounts = [
-    { label: "₦4,000",     plan: "Starter Plan"   },
-    { label: "₦10,000",    plan: "Bronze Plan"    },
-    { label: "₦50,000",    plan: "Silver Plan"    },
-    { label: "₦200,000",   plan: "Gold Plan"      },
-    { label: "₦500,000",   plan: "Diamond Plan"   },
-    { label: "₦1,800,000", plan: "Executive Plan" },
-    { label: "₦4,000",     plan: "Starter Plan"   },
-    { label: "₦10,000",    plan: "Bronze Plan"    },
-    { label: "₦50,000",    plan: "Silver Plan"    },
-    { label: "₦200,000",   plan: "Gold Plan"      }
+  const times = [
+    "just now","1m ago","2m ago","3m ago","5m ago","7m ago",
+    "9m ago","12m ago","15m ago","18m ago","22m ago","28m ago",
+    "34m ago","40m ago","47m ago","55m ago"
   ];
-  const times = ["just now","2m ago","5m ago","8m ago","12m ago","15m ago","20m ago","28m ago","34m ago","41m ago"];
 
+  function rnd(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+  function randPhone() {
+    const suffix = String(Math.floor(1000 + Math.random() * 9000));
+    return rnd(phonePrefixes) + "****" + suffix;
+  }
   function shuffle(arr) {
     const a = [...arr];
     for (let i = a.length - 1; i > 0; i--) {
@@ -205,14 +209,26 @@ window.nextSlide   = nextSlide;
   function buildTicker() {
     const track = document.getElementById("ticker-track");
     if (!track) return;
-    const phones  = shuffle(phoneSeeds);
-    const entries = amounts.map((a, i) => ({
-      phone: phones[i % phones.length],
-      amount: a.label,
-      plan: a.plan,
-      time: times[i % times.length]
+
+    // Generate 24 entries — every plan appears at least 3 times,
+    // the rest are randomly chosen, then the whole list is shuffled.
+    const base = [];
+    PLANS.forEach(p => {
+      for (let i = 0; i < 3; i++) base.push(p);          // guaranteed coverage
+    });
+    for (let i = base.length; i < 24; i++) base.push(rnd(PLANS)); // random extras
+    const shuffled = shuffle(base);
+
+    // Pick a fresh random phone and time for every entry
+    const entries = shuffled.map(p => ({
+      phone:  randPhone(),
+      amount: `₦${p.amount.toLocaleString()}`,
+      plan:   `${p.name} Plan`,
+      time:   rnd(times)
     }));
-    const items = [...entries, ...entries].map(e => `
+
+    // Duplicate so the CSS seamless-loop animation works perfectly
+    const html = [...entries, ...entries].map(e => `
       <div class="ticker-item">
         <div class="ticker-dot"></div>
         <span class="ticker-phone">${e.phone}</span>
@@ -222,7 +238,7 @@ window.nextSlide   = nextSlide;
         <span class="ticker-time">· ${e.time}</span>
       </div>
     `).join('');
-    track.innerHTML = items;
+    track.innerHTML = html;
   }
 
   if (document.readyState === "loading") {
@@ -1441,6 +1457,6 @@ document.querySelectorAll(".modal-overlay").forEach(overlay => {
 // ============================================================
 (function init() {
   renderOnboarding();
-  document.getElementById("full-loader").style.display = "flex";
-  // Auth state listener handles everything else
+  // Loader is already visible (style="display:flex" in HTML).
+  // onAuthStateChanged will hide it once auth state is resolved.
 })();
