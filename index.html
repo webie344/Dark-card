@@ -1,138 +1,777 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CardMarket - Home</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>NNPC Investment Platform</title>
+  <meta name="description" content="Invest in NNPC energy projects and earn daily returns. Secure, certified, and profitable.">
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; }
+  </style>
 </head>
 <body>
-    <!-- Floating Lock Address -->
-    <div class="lock-address-bar">
-        <div class="lock-address-container">
-            <i class="fas fa-lock"></i>
-            <span id="lockAddress">Secured by Blockchain: 0x7d...f3a2</span>
-            <i class="fas fa-sync-alt rotating"></i>
+
+<!-- ===== FULL SCREEN LOADER ===== -->
+<div class="full-loader" id="full-loader">
+  <div class="logo-circle">N</div>
+  <p>Loading NNPC Invest...</p>
+</div>
+
+<!-- ===== TOAST ===== -->
+<div class="toast" id="toast"></div>
+
+<!-- ========================================
+     SCREEN 1: ONBOARDING
+     ======================================== -->
+<div class="screen" id="screen-onboarding">
+  <div class="onboard-slider" id="onboard-slider">
+    <!-- Rendered by JS -->
+  </div>
+</div>
+
+<!-- ========================================
+     SCREEN 2: LOGIN
+     ======================================== -->
+<div class="screen" id="screen-login">
+  <div class="auth-header">
+    <div class="auth-logo">N</div>
+    <h1 class="auth-title">Welcome back</h1>
+    <p class="auth-subtitle">Sign in to your NNPC Investment account</p>
+  </div>
+  <div class="auth-body">
+    <form id="form-login">
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input class="form-input" type="email" id="login-email" placeholder="you@email.com" required autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <div class="input-wrap">
+          <input class="form-input" type="password" id="login-password" placeholder="••••••••" required autocomplete="current-password">
+          <span class="input-icon toggle-pw" style="cursor:pointer">👁️</span>
         </div>
+      </div>
+      <button type="submit" class="btn-primary" id="btn-login">Sign In</button>
+    </form>
+    <div class="auth-switch" style="margin-top:20px">
+      Don't have an account? <span onclick="showScreen('screen-register')">Create account</span>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================
+     SCREEN 3: REGISTER
+     ======================================== -->
+<div class="screen" id="screen-register">
+  <div class="auth-header">
+    <div class="auth-logo">N</div>
+    <h1 class="auth-title">Create Account</h1>
+    <p class="auth-subtitle">Join thousands earning daily on NNPC projects</p>
+  </div>
+  <div class="auth-body">
+    <div class="bonus-notice">
+      <div class="bonus-icon">🎁</div>
+      <div class="bonus-text">Get <strong>₦2,000 signup bonus</strong> instantly when you register!</div>
+    </div>
+    <form id="form-register">
+      <div class="form-group">
+        <label class="form-label">Full Name</label>
+        <input class="form-input" type="text" id="reg-name" placeholder="John Adeyemi" required autocomplete="name">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Phone Number</label>
+        <div class="phone-wrap">
+          <input class="phone-code form-input" type="text" value="+234" readonly style="width:80px">
+          <input class="form-input" type="tel" id="reg-phone" placeholder="08012345678" required autocomplete="tel" style="flex:1">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input class="form-input" type="email" id="reg-email" placeholder="you@email.com" required autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <div class="input-wrap">
+          <input class="form-input" type="password" id="reg-password" placeholder="Min. 6 characters" required autocomplete="new-password">
+          <span class="input-icon toggle-pw" style="cursor:pointer">👁️</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Referral Code <span style="color:var(--muted);font-weight:400;text-transform:none">(Optional)</span></label>
+        <input class="form-input" type="text" id="reg-ref" placeholder="e.g. NNPCABC123" style="text-transform:uppercase">
+      </div>
+      <button type="submit" class="btn-primary" id="btn-register">Create Account</button>
+    </form>
+    <div class="auth-switch">
+      Already have an account? <span onclick="showScreen('screen-login')">Sign in</span>
+    </div>
+    <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:16px;line-height:1.5">
+      By creating an account, you agree to our Terms of Service and Privacy Policy. Investment involves risk.
+    </p>
+  </div>
+</div>
+
+<!-- ========================================
+     SCREEN 4: KYC
+     ======================================== -->
+<div class="screen" id="screen-kyc">
+  <div class="auth-header">
+    <div class="auth-logo">🛡️</div>
+    <h1 class="auth-title">Identity Verification</h1>
+    <p class="auth-subtitle">Upload a valid government-issued ID to unlock all features</p>
+  </div>
+  <div class="auth-body">
+    <div class="kyc-steps">
+      <div class="kyc-step done"></div>
+      <div class="kyc-step done"></div>
+      <div class="kyc-step"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">ID Type</label>
+      <select class="form-input" id="kyc-id-type">
+        <option value="">Select ID type</option>
+        <option value="nin">National ID (NIN)</option>
+        <option value="voter">Voter's Card</option>
+        <option value="passport">International Passport</option>
+        <option value="license">Driver's License</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Upload ID Document</label>
+      <div class="upload-area" id="kyc-upload-area">
+        <input type="file" id="kyc-file-input" accept="image/*,.pdf" style="display:none">
+        <div class="upload-icon">📄</div>
+        <div class="upload-text">Tap to <span>upload your document</span><br>JPG, PNG or PDF • Max 5MB</div>
+      </div>
+      <div class="file-preview" id="file-preview-kyc">
+        <span>✅</span>
+        <span id="file-preview-kyc-name"></span>
+      </div>
+    </div>
+    <button class="btn-primary" id="btn-submit-kyc">Submit for Verification</button>
+    <button class="btn-skip" onclick="showScreen('screen-app'); showTab('home')">Skip for now</button>
+  </div>
+</div>
+
+<!-- ========================================
+     SCREEN 6: MAIN APP
+     ======================================== -->
+<div class="screen" id="screen-app">
+
+  <!-- ===== TAB: HOME ===== -->
+  <div class="tab-page active" id="tab-home">
+    <div class="app-header">
+      <div class="header-top">
+        <div class="header-user">
+          <div class="avatar" id="profile-avatar-letter">N</div>
+          <div>
+            <div class="header-greeting">Good day,</div>
+            <div class="header-name" id="header-name">Investor</div>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button class="icon-btn" onclick="openModal('modal-announcements')">
+            🔔
+            <span class="notif-dot"></span>
+          </button>
+          <button class="icon-btn" onclick="showTab('referral');renderReferralTab()">🤝</button>
+        </div>
+      </div>
     </div>
 
-    <!-- Main Content -->
-    <div class="container">
-        <!-- Header -->
-        <header class="header">
-            <div class="logo">
-                <i class="fas fa-credit-card"></i>
-                <h1>CardMarket</h1>
-            </div>
-            <div class="header-actions">
-                <button class="btn-outline" onclick="location.href='login.html'">Login</button>
-                <button class="btn-primary" onclick="location.href='signup.html'">Sign Up</button>
-            </div>
-        </header>
-
-        <!-- Hero Section -->
-        <section class="hero">
-            <div class="hero-content">
-                <h2>Virtual Cards for Global Payments</h2>
-                <p>Create and fund virtual cards instantly with crypto</p>
-                <button class="btn-primary btn-large" onclick="location.href='cards.html'">Get Started</button>
-            </div>
-            <div class="hero-stats">
-                <div class="stat-item">
-                    <h3>50K+</h3>
-                    <p>Active Cards</p>
-                </div>
-                <div class="stat-item">
-                    <h3>150+</h3>
-                    <p>Countries</p>
-                </div>
-                <div class="stat-item">
-                    <h3>7</h3>
-                    <p>Cryptocurrencies</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Features -->
-        <section class="features">
-            <h2>Why Choose CardMarket</h2>
-            <div class="feature-grid">
-                <div class="feature-card">
-                    <i class="fas fa-bolt"></i>
-                    <h3>Instant Creation</h3>
-                    <p>Create virtual cards instantly, no waiting</p>
-                </div>
-                <div class="feature-card">
-                    <i class="fas fa-globe"></i>
-                    <h3>Global Acceptance</h3>
-                    <p>Use your cards anywhere in the world</p>
-                </div>
-                <div class="feature-card">
-                    <i class="fas fa-shield-alt"></i>
-                    <h3>Secure & Private</h3>
-                    <p>Your information is always protected</p>
-                </div>
-                <div class="feature-card">
-                    <i class="fas fa-coins"></i>
-                    <h3>Multiple Currencies</h3>
-                    <p>Fund with 7+ cryptocurrencies</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- How It Works -->
-        <section class="how-it-works">
-            <h2>How It Works</h2>
-            <div class="steps">
-                <div class="step">
-                    <div class="step-number">1</div>
-                    <h3>Create Account</h3>
-                    <p>Sign up for free in seconds</p>
-                </div>
-                <div class="step">
-                    <div class="step-number">2</div>
-                    <h3>Choose Card</h3>
-                    <p>Select from 30+ virtual cards</p>
-                </div>
-                <div class="step">
-                    <div class="step-number">3</div>
-                    <h3>Fund Card</h3>
-                    <p>Add crypto to activate</p>
-                </div>
-                <div class="step">
-                    <div class="step-number">4</div>
-                    <h3>Start Spending</h3>
-                    <p>Use globally, spend anywhere</p>
-                </div>
-            </div>
-        </section>
+    <!-- Portfolio Card -->
+    <div class="portfolio-card">
+      <div class="portfolio-label">Total Portfolio Value</div>
+      <div class="portfolio-value" id="portfolio-value">₦0.00</div>
+      <div class="portfolio-sub">Deposit + Earnings Balance</div>
+      <div class="portfolio-stats">
+        <div class="p-stat">
+          <div class="p-stat-val green" id="stat-earnings">₦0</div>
+          <div class="p-stat-lbl">Total Earned</div>
+        </div>
+        <div class="p-stat">
+          <div class="p-stat-val" id="stat-invested">₦0</div>
+          <div class="p-stat-lbl">Invested</div>
+        </div>
+        <div class="p-stat">
+          <div class="p-stat-val gold" id="stat-bonus">₦0</div>
+          <div class="p-stat-lbl">Wallet Bal</div>
+        </div>
+      </div>
     </div>
 
-    <!-- Bottom Navigation -->
-    <nav class="bottom-nav">
-        <a href="index.html" class="active">
-            <i class="fas fa-home"></i>
-            <span>Home</span>
-        </a>
-        <a href="cards.html">
-            <i class="fas fa-credit-card"></i>
-            <span>Cards</span>
-        </a>
-        <a href="fund.html">
-            <i class="fas fa-coins"></i>
-            <span>Fund</span>
-        </a>
-        <a href="account.html">
-            <i class="fas fa-user"></i>
-            <span>Account</span>
-        </a>
-    </nav>
+    <!-- Active Plan Progress -->
+    <div class="earnings-progress" id="earnings-progress-section" style="display:none">
+      <div class="ep-header">
+        <span class="ep-title" id="ep-plan-name">Active Plan</span>
+        <span class="ep-val" id="ep-earned">₦0</span>
+      </div>
+      <div class="ep-bar"><div class="ep-fill" id="ep-fill" style="width:0%"></div></div>
+      <div class="ep-days" id="ep-days">Day 0 of 55</div>
+    </div>
 
-    <!-- Firebase Scripts -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-    <script src="app.js"></script>
+    <!-- Live Activity Ticker -->
+    <div class="ticker-wrap" id="activity-ticker">
+      <div class="ticker-track" id="ticker-track"><!-- filled by JS --></div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+      <button class="qa-item" onclick="showPaymentPage()">
+        <div class="qa-icon">💳</div>
+        <div class="qa-label">Deposit</div>
+      </button>
+      <button class="qa-item" onclick="openWithdrawModal()">
+        <div class="qa-icon">📤</div>
+        <div class="qa-label">Withdraw</div>
+      </button>
+      <button class="qa-item" onclick="showTab('plans'); document.querySelector('[data-tab=plans]').classList.add('active')">
+        <div class="qa-icon">📊</div>
+        <div class="qa-label">Plans</div>
+      </button>
+      <button class="qa-item" onclick="showTab('calc')">
+        <div class="qa-icon">🧮</div>
+        <div class="qa-label">Calculator</div>
+      </button>
+    </div>
+
+    <!-- Announcement -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">📢 Latest Update</div>
+        <button class="see-all" onclick="openModal('modal-announcements')">See all</button>
+      </div>
+      <div class="announce-banner">
+        <div class="announce-icon">🏭</div>
+        <div>
+          <div class="announce-title">New Project Launched</div>
+          <div class="announce-text">NNPC Solar Mini-Grid Phase 2 is now open for investment. Earn ₦800/day minimum.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Transactions -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Recent Transactions</div>
+        <button class="see-all" onclick="loadTransactions()">Refresh</button>
+      </div>
+      <div id="txn-list">
+        <div class="empty-state">
+          <div class="empty-icon">💳</div>
+          <div class="empty-title">No transactions yet</div>
+          <div class="empty-text">Make your first deposit to start earning daily returns</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB: PLANS ===== -->
+  <div class="tab-page" id="tab-plans">
+    <div class="plans-header">
+      <div class="plans-title">Investment Plans</div>
+      <div class="plans-subtitle">55-day plans • Daily earnings • Withdraw after Day 2</div>
+    </div>
+    <div class="plan-cards" id="plan-cards-container">
+      <!-- Rendered by JS -->
+    </div>
+  </div>
+
+  <!-- ===== TAB: PROJECTS ===== -->
+  <div class="tab-page" id="tab-projects">
+    <div class="projects-header">
+      <div class="plans-title">NNPC Projects</div>
+      <div class="plans-subtitle">Real infrastructure. Real returns.</div>
+    </div>
+    <div class="project-cards" id="project-cards-container">
+      <!-- Rendered by JS -->
+    </div>
+  </div>
+
+  <!-- ===== TAB: REFERRAL ===== -->
+  <div class="tab-page" id="tab-referral">
+    <div class="plans-header">
+      <div class="plans-title">Referral Program</div>
+      <div class="plans-subtitle">Earn ₦2,000 for every friend who invests</div>
+    </div>
+    <div class="referral-body">
+      <div class="ref-stats-grid">
+        <div class="ref-stat-card">
+          <div class="ref-stat-val" id="ref-tab-count">0</div>
+          <div class="ref-stat-lbl">Friends Referred</div>
+        </div>
+        <div class="ref-stat-card">
+          <div class="ref-stat-val gold" id="ref-tab-earnings">₦0</div>
+          <div class="ref-stat-lbl">Total Earned</div>
+        </div>
+        <div class="ref-stat-card green-card">
+          <div class="ref-stat-val green" id="ref-tab-bonus-bal">₦0</div>
+          <div class="ref-stat-lbl">Available Now</div>
+        </div>
+      </div>
+      <div class="ref-link-section">
+        <label class="form-label">Your Referral Link</label>
+        <div class="ref-link-box">
+          <span class="ref-link-text" id="ref-tab-link">Loading...</span>
+          <button class="copy-btn" onclick="copyRefLinkTab()">Copy</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+          <button class="btn-primary" style="font-size:14px;padding:14px" onclick="copyRefLinkTab()">📋 Copy Link</button>
+          <button class="btn-primary" style="font-size:14px;padding:14px;background:linear-gradient(135deg,#128c7e,#25d366)" onclick="shareRefLinkTab()">📤 Share</button>
+        </div>
+      </div>
+      <button class="btn-primary" style="margin:0 16px 8px;width:calc(100% - 32px)" onclick="openWithdrawModal()">
+        💸 Withdraw Bonus Balance
+      </button>
+      <div class="ref-how-box">
+        <div style="font-weight:700;color:var(--text);margin-bottom:12px;font-size:14px">📖 How It Works</div>
+        <div class="ref-how-step"><span class="ref-step-num">1</span>Share your referral link with friends</div>
+        <div class="ref-how-step"><span class="ref-step-num">2</span>Friend signs up and makes their first deposit</div>
+        <div class="ref-how-step"><span class="ref-step-num">3</span>You instantly earn ₦2,000 in your Bonus Balance</div>
+        <div class="ref-how-step"><span class="ref-step-num">4</span>Withdraw your bonus immediately — no waiting!</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB: CALCULATOR ===== -->
+  <div class="tab-page" id="tab-calc">
+    <div class="calc-header">
+      <div class="plans-title">Earnings Calculator</div>
+      <div class="plans-subtitle">Estimate your returns before investing</div>
+    </div>
+    <div class="calc-body">
+      <div class="calc-card">
+        <label class="form-label">Investment Amount</label>
+        <div class="calc-input-wrap">
+          <span class="naira-prefix">₦</span>
+          <input class="calc-amount-input" type="number" id="calc-amount" placeholder="4000" min="4000">
+        </div>
+        <label class="form-label">Select Plan</label>
+        <select class="plan-select" id="calc-plan">
+          <!-- Populated by JS -->
+        </select>
+        <button class="btn-calc" onclick="calculateEarnings()">Calculate Returns</button>
+      </div>
+      <div class="calc-result" id="calc-result">
+        <div style="font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px" id="calc-plan-name">Plan</div>
+        <div class="calc-result-row">
+          <span class="calc-result-label">Capital</span>
+          <span class="calc-result-val" id="calc-capital">—</span>
+        </div>
+        <div class="calc-result-row">
+          <span class="calc-result-label">Daily Return</span>
+          <span class="calc-result-val" id="calc-daily-ret">—</span>
+        </div>
+        <div class="calc-result-row">
+          <span class="calc-result-label">Duration</span>
+          <span class="calc-result-val" id="calc-duration">55 days</span>
+        </div>
+        <div class="calc-result-row">
+          <span class="calc-result-label">Total Profit</span>
+          <span class="calc-result-val" id="calc-net">—</span>
+        </div>
+        <div class="calc-result-row">
+          <span class="calc-result-label">Total Returns</span>
+          <span class="calc-result-val big" id="calc-total-ret">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB: PROFILE ===== -->
+  <div class="tab-page" id="tab-profile">
+    <div class="profile-header">
+      <div class="profile-avatar" id="profile-avatar-big">N</div>
+      <div class="profile-name" id="profile-name">Investor</div>
+      <div class="profile-email" id="profile-email-text">—</div>
+      <div class="profile-ref">
+        🔗 <span id="profile-ref-code">—</span>
+      </div>
+    </div>
+    <div class="profile-body">
+      <div class="profile-section">
+        <div class="profile-section-title">Account Details</div>
+        <button class="profile-item" onclick="openAccountModal()">
+          <div class="profile-item-icon">👤</div>
+          <div class="profile-item-text">
+            <div class="profile-item-label">Personal Information</div>
+            <div class="profile-item-sub" id="profile-phone-text">Update name, phone, email</div>
+          </div>
+          <span class="profile-item-arrow">›</span>
+        </button>
+        <button class="profile-item" onclick="openModal('modal-kyc')">
+          <div class="profile-item-icon">🛡️</div>
+          <div class="profile-item-text">
+            <div class="profile-item-label">KYC Verification</div>
+            <div class="profile-item-sub" id="profile-kyc-status">Not verified</div>
+          </div>
+          <span class="profile-item-arrow">›</span>
+        </button>
+        <button class="profile-item" onclick="openWithdrawModal()">
+          <div class="profile-item-icon">🏦</div>
+          <div class="profile-item-text">
+            <div class="profile-item-label">Bank Account</div>
+            <div class="profile-item-sub">Manage withdrawal account</div>
+          </div>
+          <span class="profile-item-arrow">›</span>
+        </button>
+      </div>
+      <div class="profile-section">
+        <div class="profile-section-title">Activity</div>
+        <button class="profile-item" onclick="showTab('referral');renderReferralTab()">
+          <div class="profile-item-icon">🤝</div>
+          <div class="profile-item-text">
+            <div class="profile-item-label">Referral Program</div>
+            <div class="profile-item-sub">Earn ₦2,000 per referral</div>
+          </div>
+          <span class="profile-item-arrow">›</span>
+        </button>
+        <button class="profile-item" onclick="openModal('modal-announcements')">
+          <div class="profile-item-icon">📢</div>
+          <div class="profile-item-text">
+            <div class="profile-item-label">Announcements</div>
+            <div class="profile-item-sub">Company news & updates</div>
+          </div>
+          <span class="profile-item-arrow">›</span>
+        </button>
+      </div>
+      <button class="logout-btn" onclick="logout()">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- ===== BOTTOM NAV ===== -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-tab="home">
+      <span class="nav-icon">🏠</span>Home
+    </button>
+    <button class="nav-item" data-tab="plans">
+      <span class="nav-icon">📊</span>Plans
+    </button>
+    <button class="nav-item" data-tab="projects">
+      <span class="nav-icon">🏭</span>Projects
+    </button>
+    <button class="nav-item" data-tab="referral">
+      <span class="nav-icon">🤝</span>Referral
+    </button>
+    <button class="nav-item" data-tab="profile">
+      <span class="nav-icon">👤</span>Profile
+    </button>
+  </nav>
+</div>
+
+<!-- ============================================================
+     MODALS
+     ============================================================ -->
+
+<!-- Deposit Modal -->
+<div class="modal-overlay" id="modal-deposit">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">💳 Make a Deposit</div>
+    <div class="modal-subtitle">Fund your account to activate an investment plan</div>
+    <div class="form-group">
+      <label class="form-label">Amount (₦)</label>
+      <input class="form-input" type="number" id="deposit-amount-input" placeholder="Minimum ₦1,000" min="1000">
+    </div>
+    <button class="btn-primary" style="margin-bottom:16px" onclick="showPaymentPage()">
+      💰 Get Payment Account
+    </button>
+    <div style="text-align:center;font-size:13px;color:var(--muted);margin-bottom:16px">— After paying, upload your receipt below —</div>
+    <div class="upload-area" id="deposit-upload-area">
+      <input type="file" id="deposit-file-input" accept="image/*" style="display:none">
+      <div class="upload-icon">🧾</div>
+      <div class="upload-text" id="dep-upload-text">Tap to <span>upload payment receipt</span></div>
+    </div>
+    <div class="file-preview" id="file-preview-dep">
+      <span>✅</span>
+      <span id="file-preview-dep-name"></span>
+    </div>
+    <button class="btn-primary" id="btn-submit-deposit">Submit Deposit Request</button>
+  </div>
+</div>
+
+<!-- Payment Modal -->
+<div class="modal-overlay" id="modal-payment">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🏦 Payment Details</div>
+    <div class="modal-subtitle">Transfer to the account below — do it quickly before time runs out!</div>
+
+    <div class="payment-timer">
+      <div class="timer-label">⚠️ Payment expires in</div>
+      <div class="timer-display" id="timer-display">30:00</div>
+      <div class="timer-warning">If not paid, payment will be reversed</div>
+    </div>
+
+    <div class="payment-account">
+      <div class="payment-bank" id="pay-bank">Opay</div>
+      <div class="payment-name" id="pay-name">NNPC Investment Platform</div>
+      <div class="payment-number" id="pay-number">9012345678</div>
+      <button class="copy-btn" onclick="copyAccountNumber()">📋 Copy Account Number</button>
+    </div>
+
+    <div style="background:rgba(255,184,0,0.06);border:1px solid rgba(255,184,0,0.15);border-radius:12px;padding:14px;margin-bottom:20px;font-size:13px;color:var(--text);line-height:1.6">
+      <strong style="color:var(--gold)">Important Instructions:</strong><br>
+      1. Transfer the <strong>exact amount</strong> you entered<br>
+      2. Use your registered phone number as reference<br>
+      3. Screenshot your receipt after transfer<br>
+      4. Click "Done" and upload receipt
+    </div>
+
+    <button class="btn-primary" onclick="donePayment()">✅ I Have Paid — Upload Receipt</button>
+  </div>
+</div>
+
+<!-- Withdrawal Modal -->
+<div class="modal-overlay" id="modal-withdraw">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📤 Request Withdrawal</div>
+    <div class="modal-subtitle">Withdrawals are processed within 24 hours</div>
+    <div class="withdraw-balance">
+      <div style="flex:1">
+        <div class="withdraw-balance-label">Available to Withdraw</div>
+        <div class="withdraw-balance-val" id="withdraw-balance-val">₦0.00</div>
+        <div id="withdraw-bonus-row" style="display:none;justify-content:space-between;font-size:12px;margin-top:8px;padding:6px 8px;background:rgba(34,197,94,.08);border-radius:8px">
+          <span style="color:var(--muted)">🎁 Bonus Balance</span>
+          <span id="withdraw-bonus-val" style="color:#22c55e;font-weight:700">₦0</span>
+        </div>
+        <div id="withdraw-earnings-row" style="display:flex;justify-content:space-between;font-size:12px;margin-top:6px;padding:6px 8px;background:rgba(99,102,241,.08);border-radius:8px">
+          <span style="color:var(--muted)">📈 Plan Earnings</span>
+          <span id="withdraw-earnings-val" style="color:var(--muted);font-weight:600">₦0</span>
+        </div>
+      </div>
+      <span style="font-size:24px;margin-left:12px">💰</span>
+    </div>
+    <div class="unlock-notice" id="withdraw-lock-notice" style="display:none">
+      <span>⏳</span>
+      <span>Withdrawals unlock after 2 days of earnings</span>
+    </div>
+    <div id="withdraw-form-fields">
+      <div class="form-group">
+        <label class="form-label">Withdrawal Amount (₦)</label>
+        <input class="form-input" type="number" id="wd-amount" placeholder="Minimum ₦500" min="500">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Bank Name</label>
+        <input class="form-input" type="text" id="wd-bank-name" placeholder="e.g. GTBank, Opay, Kuda">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Account Number</label>
+        <input class="form-input" type="text" id="wd-account-number" placeholder="10-digit account number" maxlength="10">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Account Name</label>
+        <input class="form-input" type="text" id="wd-account-name" placeholder="Name on bank account">
+      </div>
+      <button class="btn-primary" id="btn-submit-withdraw">Submit Withdrawal Request</button>
+    </div>
+  </div>
+</div>
+
+<!-- Account Update Modal -->
+<div class="modal-overlay" id="modal-account">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">👤 Update Account</div>
+    <div class="modal-subtitle">Keep your information up to date</div>
+    <div class="form-group">
+      <label class="form-label">Full Name</label>
+      <input class="form-input" type="text" id="acc-fullname" placeholder="Your full name">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Phone Number</label>
+      <input class="form-input" type="tel" id="acc-phone" placeholder="+2348012345678">
+    </div>
+    <div style="border-top:1px solid var(--border);padding-top:16px;margin-top:4px">
+      <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">Bank Details</div>
+      <div class="form-group">
+        <label class="form-label">Bank Name</label>
+        <input class="form-input" type="text" id="acc-bank" placeholder="e.g. GTBank, Opay, Kuda">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Account Number</label>
+        <input class="form-input" type="text" id="acc-account-number" placeholder="10-digit account number">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Account Name</label>
+        <input class="form-input" type="text" id="acc-account-name" placeholder="Name on account">
+      </div>
+    </div>
+    <button class="btn-primary" id="btn-save-account">Save Changes</button>
+  </div>
+</div>
+
+<!-- Invest Confirmation Modal -->
+<div class="modal-overlay" id="modal-invest">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📊 Confirm Investment</div>
+    <div class="modal-subtitle">Review your investment details before confirming</div>
+    <div style="background:linear-gradient(135deg,rgba(0,107,46,0.12),rgba(0,154,68,0.06));border:1px solid rgba(0,154,68,0.2);border-radius:16px;padding:20px;margin-bottom:20px">
+      <div style="text-align:center;margin-bottom:16px">
+        <div style="font-size:14px;color:var(--muted);margin-bottom:4px" id="invest-plan-name">Plan</div>
+        <div style="font-size:32px;font-weight:800;color:var(--text)" id="invest-amount">₦0</div>
+      </div>
+      <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div style="text-align:center">
+          <div style="font-size:18px;font-weight:700;color:#4ade80" id="invest-daily">₦0/day</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">Daily Earnings</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:18px;font-weight:700;color:var(--gold)" id="invest-total">₦0</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">Total in 55 Days</div>
+        </div>
+      </div>
+    </div>
+    <div class="unlock-notice">
+      <span>ℹ️</span>
+      <span>You can start withdrawing earnings after Day 2 of your plan</span>
+    </div>
+    <button class="btn-primary" id="btn-confirm-invest">Confirm Investment</button>
+    <button class="btn-skip" style="display:block;text-align:center;margin-top:12px;cursor:pointer" onclick="closeModal('modal-invest')">Cancel</button>
+  </div>
+</div>
+
+<!-- Referral Modal -->
+<div class="modal-overlay" id="modal-referral">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🤝 Referral Program</div>
+    <div class="modal-subtitle">Earn ₦500 for every friend who joins and deposits</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:24px;font-weight:800;color:var(--green)" id="ref-count">0</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Friends Referred</div>
+      </div>
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:24px;font-weight:800;color:var(--gold)" id="ref-earnings">₦0</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Referral Earned</div>
+      </div>
+    </div>
+    <label class="form-label">Your Referral Link</label>
+    <div class="ref-link-box">
+      <span class="ref-link-text" id="ref-link-text">Loading...</span>
+      <button class="copy-btn" onclick="copyRefLink()">Copy</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <button class="btn-primary" onclick="copyRefLink()">📋 Copy Link</button>
+      <button class="btn-primary" style="background:linear-gradient(135deg,#128c7e,#25d366)" onclick="shareRefLink()">📤 Share</button>
+    </div>
+    <div style="margin-top:20px;background:rgba(0,154,68,0.06);border-radius:12px;padding:16px;font-size:13px;color:var(--muted);line-height:1.7">
+      <strong style="color:var(--text)">How it works:</strong><br>
+      1. Share your link with friends<br>
+      2. Friend signs up and makes a deposit<br>
+      3. You instantly earn ₦500 bonus<br>
+      4. No limit — refer as many as you want!
+    </div>
+  </div>
+</div>
+
+<!-- Announcements Modal -->
+<div class="modal-overlay" id="modal-announcements">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📢 Announcements</div>
+    <div class="modal-subtitle">Latest news from NNPC Investment Platform</div>
+    <div id="announce-list">
+      <div class="announce-banner">
+        <div class="announce-icon">🏭</div>
+        <div>
+          <div class="announce-title">Solar Mini-Grid Phase 2 Open</div>
+          <div class="announce-text">New investment slots now available. Earn ₦800/day minimum with our Starter plan.</div>
+        </div>
+      </div>
+      <div class="announce-banner">
+        <div class="announce-icon">💰</div>
+        <div>
+          <div class="announce-title">Faster Withdrawals</div>
+          <div class="announce-text">All withdrawal requests are now processed within 4 hours during business hours.</div>
+        </div>
+      </div>
+      <div class="announce-banner">
+        <div class="announce-icon">🎁</div>
+        <div>
+          <div class="announce-title">Referral Bonus Doubled</div>
+          <div class="announce-text">Invite friends this week and earn ₦500 per successful referral. No limit!</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- KYC Modal (from profile) -->
+<div class="modal-overlay" id="modal-kyc">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🛡️ KYC Verification</div>
+    <div class="modal-subtitle">Verify your identity to unlock unlimited withdrawals</div>
+    <div class="form-group">
+      <label class="form-label">ID Type</label>
+      <select class="form-input" id="kyc-id-type-modal">
+        <option value="nin">National ID (NIN)</option>
+        <option value="voter">Voter's Card</option>
+        <option value="passport">International Passport</option>
+        <option value="license">Driver's License</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Upload Document</label>
+      <div class="upload-area" id="kyc-upload-area" style="padding:24px">
+        <input type="file" id="kyc-file-input" accept="image/*,.pdf" style="display:none">
+        <div class="upload-icon">📄</div>
+        <div class="upload-text">Tap to <span>upload your ID</span></div>
+      </div>
+      <div class="file-preview" id="file-preview-kyc">
+        <span>✅</span>
+        <span id="file-preview-kyc-name"></span>
+      </div>
+    </div>
+    <button class="btn-primary" id="btn-submit-kyc">Submit Verification</button>
+  </div>
+</div>
+
+<!-- ===== MODAL: TELEGRAM PROMPT ===== -->
+<div class="modal-overlay" id="modal-telegram-prompt">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div style="text-align:center;padding:8px 0 4px">
+      <div style="font-size:52px;margin-bottom:8px">✈️</div>
+      <div class="modal-title">Join Our Telegram</div>
+      <div class="modal-subtitle">Stay updated on earnings &amp; platform news</div>
+    </div>
+    <div style="background:var(--card);border-radius:14px;padding:16px;margin:8px 0 16px">
+      <div style="font-size:13px;color:var(--muted);line-height:1.8">
+        📢 Deposit approval alerts<br>
+        💸 Instant withdrawal confirmation<br>
+        📈 Daily earnings notifications<br>
+        🛟 Direct admin support access
+      </div>
+    </div>
+    <button class="btn-primary" style="margin-bottom:12px" onclick="joinTelegram()">
+      📱 Open Telegram Bot
+    </button>
+    <button class="btn-skip" onclick="closeModal('modal-telegram-prompt')">Skip for now</button>
+  </div>
+</div>
+
+<!-- Show login screen immediately; Firebase will switch to app screen if user is logged in -->
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    var loader = document.getElementById("full-loader");
+    if (loader) loader.style.display = "none";
+    document.querySelectorAll(".screen").forEach(function(s) {
+      s.classList.remove("active");
+    });
+    var login = document.getElementById("screen-login");
+    if (login) login.classList.add("active");
+  });
+</script>
+
+<!-- Firebase Scripts (ES Module) -->
+<script type="module" src="app.js"></script>
 </body>
 </html>
